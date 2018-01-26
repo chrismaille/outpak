@@ -2,6 +2,11 @@ import unittest
 import os
 from outpak.main import Outpak
 
+try:
+    from unittest.mock import patch
+except ImportError:
+    from mock import patch
+
 PAK = """
 version: "1"
 token_key: TEST_TOKEN_PAK
@@ -20,13 +25,67 @@ envs:
       - requirements.txt
 """
 
+REQ = """
+# This is a comment
+-e git+git@github.com:chrismaille/outpak@1.0.0#egg=outpak
+Django==2.0.1
+requests[security]>=2.18.1  # another comment
+-e git+https://github.com/chrismaille/outpak#egg=outpak
+ipdb
+flask == 1.0.0
+-e ./packages/my_package
+"""
 
-class TestOutpak(unittest.TestCase):
+
+class TestOutpakRunModule(unittest.TestCase):
+
+    def test_get_path(self):
+        from outpak.run import get_path
+        self.assertEqual(
+            get_path(),
+            os.path.join(os.getcwd(), 'pak.yml')
+        )
+
+    def test_get_from_env(self):
+        from outpak.run import get_from_env
+        os.environ['OUTPAK_FILE'] = '/tmp/pak.yml'
+        ret = get_from_env()
+        del os.environ['OUTPAK_FILE']
+        self.assertEqual(
+            ret,
+            '/tmp/pak.yml'
+        )
+
+    @patch("outpak.run.Outpak", autospec=True)
+    @patch(
+        "outpak.run.docopt",
+        autospec=True,
+        return_value={
+            '--config': None,
+            'install': True
+        }
+    )
+    def test_run(self, *args):
+        from outpak.run import run
+        self.assertIsNone(run())
+
+
+class TestOutpakClass(unittest.TestCase):
 
     def setUp(self):
-        super(TestOutpak, self).setUp()
+        super(TestOutpakClass, self).setUp()
         self.path = "/tmp/pak.yml"
         self.instance = Outpak(self.path)
+
+    def tearDown(self):
+        if os.getenv('TEST_ENV_PAK'):
+            del os.environ['TEST_ENV_PAK']
+        if os.getenv('TEST_TOKEN_PAK'):
+            del os.environ['TEST_TOKEN_PAK']
+        if os.path.exists(self.path):
+            os.remove(self.path)
+        if os.path.exists('/tmp/requirements.txt'):
+            os.remove('/tmp/requirements.txt')
 
     def _load_from_file(self):
         with open(self.path, "w") as file:
@@ -77,11 +136,11 @@ class TestOutpak(unittest.TestCase):
         self._load_from_file()
         os.environ['TEST_ENV_PAK'] = 'development'
         self.instance.get_current_environment()
+        del os.environ['TEST_ENV_PAK']
         self.assertIsInstance(
             self.instance.environment,
             dict
         )
-        del os.environ['TEST_ENV_PAK']
 
     def test_get_token(self):
         self._load_from_file()
@@ -106,11 +165,12 @@ class TestOutpak(unittest.TestCase):
         del os.environ['TEST_ENV_PAK']
 
     def test_check_virtualenv(self):
-        import sys 
-        
+        import sys
+
         self._load_from_file()
         os.environ['TEST_ENV_PAK'] = 'development'
         self.instance.get_current_environment()
+        del os.environ['TEST_ENV_PAK']
         if hasattr(sys, 'real_prefix'):
             self.assertIsNone(self.instance.check_venv())
         else:
@@ -121,6 +181,7 @@ class TestOutpak(unittest.TestCase):
         self._load_from_file()
         os.environ['TEST_ENV_PAK'] = 'development'
         self.instance.get_current_environment()
+        del os.environ['TEST_ENV_PAK']
         return self.instance.parse_line(line)
 
     def test_parse_line_fixed_requirement(self):
@@ -145,20 +206,28 @@ class TestOutpak(unittest.TestCase):
         )
 
     def test_parse_line_git_https(self):
-        line = "-e git+https://github.com/chrismaille/outpak#egg=outpak"
-        data = self._parse_line(line)
-        self.assertEqual(
-            data['url'],
-            "github.com/chrismaille/outpak"
-        )
+        line_list = [
+            "-e git+https://github.com/chrismaille/outpak#egg=outpak",
+            "-e git+https://github.com/chrismaille/outpak@3ecdf45#egg=outpak",
+        ]
+        for line in line_list:
+            data = self._parse_line(line)
+            self.assertEqual(
+                data['url'],
+                "github.com/chrismaille/outpak"
+            )
 
     def test_parse_line_git_git(self):
-        line = "-e git+git@github.com:chrismaille/outpak@1.0.0#egg=outpak"
-        data = self._parse_line(line)
-        self.assertEqual(
-            data['url'],
-            "github.com/chrismaille/outpak"
-        )
+        line_list = [
+            "-e git+git@github.com:chrismaille/outpak@1.0.0#egg=outpak",
+            "-e git+git@github.com:chrismaille/outpak#egg=outpak",
+        ]
+        for line in line_list:
+            data = self._parse_line(line)
+            self.assertEqual(
+                data['url'],
+                "github.com/chrismaille/outpak"
+            )
 
     def test_fail_parse_line(self):
         line = "-k xxxxx"
@@ -169,3 +238,59 @@ class TestOutpak(unittest.TestCase):
         line = "-r requirements_other.txt"
         with self.assertRaises(SystemExit):
             self._parse_line(line)
+
+    def test_create_clone_dir(self):
+        line = "-e git+git@github.com:chrismaille/outpak@1.0.0#egg=outpak"
+        package = self._parse_line(line)
+        os.environ['TEST_ENV_PAK'] = 'development'
+        self.instance.get_current_environment()
+        del os.environ['TEST_ENV_PAK']
+        self.assertEqual(
+            self.instance._create_clone_dir(package),
+            os.path.join(self.instance.environment['clone_dir'], "outpak")
+        )
+
+    @patch("outpak.main.subprocess.check_output",
+           autospec=True, return_value="cmd")
+    @patch("outpak.main.subprocess.call", autospec=True, return_value=0)
+    def test_install_package_with_url(self, *args):
+        line = "-e git+git@github.com:chrismaille/outpak@1.0.0#egg=outpak"
+        os.environ['TEST_ENV_PAK'] = 'development'
+        os.environ['TEST_TOKEN_PAK'] = '12345678'
+        self._load_from_file()
+        self.instance.get_current_environment()
+        self.instance.get_token()
+        del os.environ['TEST_TOKEN_PAK']
+        del os.environ['TEST_ENV_PAK']
+        package = self._parse_line(line)
+        self.assertIsNone(
+            self.instance.install_package(package)
+        )
+
+    @patch("outpak.main.subprocess.check_output",
+           autospec=True, return_value="cmd")
+    @patch("outpak.main.subprocess.call", autospec=True, return_value=0)
+    def test_install_package_with_pip(self, *args):
+        line = "requests[security]>=2.18.0"
+        os.environ['TEST_ENV_PAK'] = 'development'
+        self._load_from_file()
+        self.instance.get_current_environment()
+        del os.environ['TEST_ENV_PAK']
+        package = self._parse_line(line)
+        self.assertIsNone(
+            self.instance.install_package(package)
+        )
+
+    @patch("outpak.main.subprocess.check_output",
+           autospec=True, return_value="cmd")
+    @patch("outpak.main.subprocess.call", autospec=True, return_value=0)
+    def test_run(self, *args):
+        with open(self.path, "w") as file:
+            file.write(PAK)
+        with open('/tmp/requirements.txt', "w") as file:
+            file.write(REQ)
+        os.environ['TEST_ENV_PAK'] = 'development'
+        os.environ['TEST_TOKEN_PAK'] = '12345678'
+        self.assertIsNone(
+            self.instance.run()
+        )

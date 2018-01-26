@@ -289,6 +289,7 @@ class Outpak():
 
         """
         original_line = line
+        line = line.split(" #")[0]  # removing comments
         line = line.strip().replace("\n", "").replace(" ", "")
         data = {
             "name": None,
@@ -374,6 +375,67 @@ class Outpak():
             sys.exit(1)
         return data
 
+    def _create_clone_dir(self, package):
+        temp_dir = os.path.join(
+            self.environment['clone_dir'],
+            package['name']
+        )
+        if os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir)
+        os.makedirs(temp_dir)
+        return temp_dir
+
+    def _install_with_url(self, package):
+        temp_dir = self._create_clone_dir(package)
+        full_package_path = os.path.join(temp_dir, package['name'])
+        ret = self._run_command(
+            "cd {} && git clone https://{}@{}".format(
+                temp_dir, self.token, package['url']),
+            verbose=True
+        )
+        if ret and package['head']:
+            branchs = self._run_command(
+                'cd {} && git fetch --all && git branch -a'.format(
+                    full_package_path),
+                get_stdout=True
+            )
+            if branchs and package['head'] in branchs:
+                ret = self._run_command(
+                    "cd {} && git checkout {}".format(
+                        full_package_path, package['head']),
+                    verbose=True
+                )
+            else:
+                ret = self._run_command(
+                    "cd {} && git reset --hard {}".format(
+                        full_package_path, package['head']),
+                    verbose=True
+                )
+        if ret:
+            ret = self._run_command(
+                "cd {} && pip install -e .".format(full_package_path),
+                verbose=True
+            )
+        if not ret:
+            sys.exit(1)
+
+    def _install_with_pip(self, package):
+        ret = self._run_command(
+            "pip install {}{}{}{}{}".format(
+                package['name'],
+                '"' if package['signal'] and
+                package['signal'] != "=" else "",
+                "{}=".format(
+                    package['signal']) if package['signal'] else "",
+                package['version'] if package['version'] else "",
+                '"' if package['signal'] and
+                package['signal'] != "=" else "",
+            ),
+            verbose=True
+        )
+        if not ret:
+            sys.exit(1)
+
     def install_package(self, package):
         """Install parsed package.
 
@@ -390,67 +452,17 @@ class Outpak():
             "at head {} ".format(package['head']) if package['head'] else "",
             'using Token' if package['url'] else "using pip"
         ), use_prefix=False)
-        temp_dir = os.path.join(
-            self.environment['clone_dir'],
-            package['name']
-        )
-        if os.path.exists(temp_dir):
-            shutil.rmtree(temp_dir)
-        os.makedirs(temp_dir)
 
         if package['url']:
-            full_package_path = os.path.join(temp_dir, package['name'])
-            ret = self._run_command(
-                "cd {} && git clone https://{}@{}".format(
-                    temp_dir, self.token, package['url']),
-                verbose=True
-            )
-            if ret and package['head']:
-                branchs = self._run_command(
-                    'cd {} && git fetch --all && git branch -a'.format(
-                        full_package_path),
-                    get_stdout=True
-                )
-                if branchs and package['head'] in branchs:
-                    ret = self._run_command(
-                        "cd {} && git checkout {}".format(
-                            full_package_path, package['head']),
-                        verbose=True
-                    )
-                else:
-                    ret = self._run_command(
-                        "cd {} && git reset --hard {}".format(
-                            full_package_path, package['head']),
-                        verbose=True
-                    )
-            if ret:
-                ret = self._run_command(
-                    "cd {} && pip install -e .".format(full_package_path),
-                    verbose=True
-                )
-            if not ret:
-                sys.exit(1)
+            self._install_with_url(package)
         else:
-            ret = self._run_command(
-                "pip install {}{}{}{}{}".format(
-                    package['name'],
-                    '"' if package['signal'] and
-                    package['signal'] != "=" else "",
-                    "{}=".format(
-                        package['signal']) if package['signal'] else "",
-                    package['version'] if package['version'] else "",
-                    '"' if package['signal'] and
-                    package['signal'] != "=" else "",
-                ),
-                verbose=True)
-            if not ret:
-                sys.exit(1)
+            self._install_with_pip(package)
 
     def run(self):
         """Run instance."""
         self.load_from_yaml()
         self.validate_data_from_yaml()
-        self.get_environment()
+        self.get_current_environment()
         self.get_token()
         self.check_venv()
 
