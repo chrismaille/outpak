@@ -88,7 +88,12 @@ class Outpak():
         except BaseException:
             return False
 
-        return True if not get_stdout else ret.decode('utf-8')
+        try:
+            ret = ret.decode('utf-8')
+        except AttributeError:
+            pass
+
+        return True if not get_stdout else ret
 
     def load_from_yaml(self):
         """Load data from pak.yml."""
