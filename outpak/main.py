@@ -27,6 +27,8 @@ class Outpak():
             path (sring): full path from click option (-c)
         """
         self.path = path
+        self.git_token = ""
+        self.bit_token = ""
 
     def _run_command(
             self,
@@ -110,11 +112,14 @@ class Outpak():
             error = True
             console.error("You must define version in {}".format(self.path))
         elif self.data['version'] == "1":
-            if not self.data.get('token_key'):
+            if not self.data.get('token_key') and\
+                    not self.data.get('github_key') and \
+                    not self.data.get('bitbucket_key'):
                 error = True
                 console.error(
                     "You must define environment "
-                    "variable for Git Token in {}".format(
+                    "variable for Git Token or "
+                    "Bitbucket App Password in {}".format(
                         self.path))
             if not self.data.get('env_key'):
                 error = True
@@ -198,20 +203,46 @@ class Outpak():
         Example
         -------
             pak.yml:
-                token_key: MY_GIT_TOKEN
+                github_key: MY_GIT_TOKEN
 
             if MY_GIT_TOKEN=1234-5678
-            code will save the '1234-5678' in self.token
+            code will save the '1234-5678' in self.git_token
 
         """
-        token_var = self.data['token_key']
-        if not os.getenv(token_var):
+        git_var = self.data.get('github_key')
+        if not git_var:
+            git_var = self.data.get('token_key')
+        if git_var:
+            if not os.getenv(git_var):
+                console.error(
+                    "Please set your {} "
+                    "(https://github.com/settings/tokens)".format(git_var))
+                sys.exit(1)
+            else:
+                self.git_token = os.getenv(git_var)
+
+        bit_var = self.data.get('bitbucket_key')
+        if bit_var:
+            if not os.getenv(bit_var):
+                console.error(
+                    "Please set your {} "
+                    "(https://bitbucket.org/account/user"
+                    "/<your_user>/app-passwords)".format(bit_var))
+                sys.exit(1)
+            else:
+                if ":" not in os.getenv(bit_var):
+                    console.error(
+                        "For Bitbucket "
+                        "Password App format is username:password"
+                    )
+                    sys.exit(1)
+                self.bit_token = os.getenv(bit_var)
+        if not git_var and not bit_var:
             console.error(
-                "Please set your {} "
-                "(https://github.com/settings/tokens)".format(token_var))
+                "You need to define at least one of "
+                "github_key or bitbucket_key in pak.yml"
+            )
             sys.exit(1)
-        else:
-            self.token = os.getenv(token_var)
 
     def get_files(self):
         """Return existing files from list.
@@ -245,7 +276,7 @@ class Outpak():
 
         Read the line from requirements.txt, ignoring # commments.
 
-        Gives an error if "-r" requirement is found.
+        Ignore if "-r" requirement is found.
 
         Check order is:
 
@@ -289,7 +320,7 @@ class Outpak():
 
         """
         original_line = line
-        line = line.split(" #")[0]  # removing comments
+        line = line.split(" #")[0]  # removing comments (need space)
         line = line.strip().replace("\n", "").replace(" ", "")
         data = {
             "name": None,
@@ -297,83 +328,112 @@ class Outpak():
             "version": None,
             "url": None,
             "head": None,
-            "egg": None
+            "egg": None,
+            "line": None,
+            "using_line": False,
+            "option": ""
         }
         if line.startswith("-r"):
-            console.error(
-                "Option -r inside file is not allowed. "
-                "Please add requirements "
-                "files in pak.yml".format(original_line))
-        # Fixed requirement
-        elif not line.startswith('-e'):
-            m = re.search(r"(.+)(>|=)=(\S+)", line)
-            if m:
-                data["name"] = m.group(1)
-                data["signal"] = m.group(2)
-                data["version"] = m.group(3)
-            # Latest requirement
-            else:
-                if not line.startswith("-"):
-                    m = re.search(r"(.+)(\n|\r|$)", line)
-                    if m:
-                        data["name"] = m.group(1)
-        # edit packages
-        elif line.startswith('-e'):
-            # non-secure links
-            if "git+" not in line:
-                data['name'] = line.replace("\n", "")
-            # -e git+https package
-            elif "http" in line:
-                m = re.search(r"(\/\/)(.+)@(.+)#egg=(.+)", line)
-                if m:
-                    data['name'] = m.group(2).split("/")[-1]
-                    data['url'] = m.group(2)
-                    data['head'] = m.group(3)
-                    data['egg'] = m.group(4)
-                else:
-                    m = re.search(r"(\/\/)(.+)#egg=(.+)", line)
-                    if m:
-                        data['name'] = m.group(2).split("/")[-1]
-                        data['url'] = m.group(2)
-                        data['egg'] = m.group(3)
-                    else:
-                        m = re.search(r"(\/\/)(.+)@(.+)", line)
-                        if m:
-                            data['name'] = m.group(2).split("/")[-1]
-                            data['url'] = m.group(2)
-                            data['head'] = m.group(3)
-                        else:
-                            m = re.search(r"(\/\/)(.+)", line)
-                            if m:
-                                data['name'] = m.group(2).split("/")[-1]
-                                data['url'] = m.group(2)
-            # -e git+git package
-            elif "git+git" in line:
-                m = re.search(r"git@(.+)@(.+)#egg=(.+)", line)
-                if m:
-                    data['name'] = m.group(1).split(
-                        "/")[-1].replace(".git", "")
-                    data['url'] = m.group(1).replace(":", "/")
-                    data['head'] = m.group(2)
-                    data['egg'] = m.group(3)
-                else:
-                    m = re.search(r"git@(.+)#egg=(.+)", line)
-                    if m:
-                        data['name'] = m.group(1).split(
-                            "/")[-1].replace(".git", "")
-                        data['url'] = m.group(1).replace(":", "/")
-                        data['egg'] = m.group(3)
-                    else:
-                        m = re.search(r"git@(.+)", line)
-                        if m:
-                            data['name'] = m.group(1).split(
-                                "/")[-1].replace(".git", "")
-                            data['url'] = m.group(1).replace(":", "/")
-
-        if not data['name']:
-            console.error('Cannot parse: {}'.format(original_line))
+            console.warning("Line {} ignored.".format(line))
             sys.exit(1)
-        return data
+
+        if line.startswith('-'):
+            data['option'] = line[0:2]
+            if data['option'] != "-e":
+                data['line'] = line
+                data['using_line'] = True
+            line = line[2:]
+
+        # SomeProject ==5.4 ; python_version < '2.7'
+        if ";" in line:
+            data['name'] = line.split(";")[0]
+            data['using_line'] = True
+            data['line'] = original_line
+            return data
+
+        # SomeProject0==1.3
+        # SomeProject >=1.2,<.2.0
+        # SomeProject~=1.4.2
+        # SomeProject[foo]>=2.18.1
+        # FooProject>=1.2--global-option="--no-user-cfg"
+        m = re.search(r"(.+)(>|=|~|<)=(\S+)", line)
+        if m:
+            data["name"] = m.group(1)
+            data["signal"] = m.group(2)
+            data["version"] = m.group(3)
+            return data
+
+        # SomeProject[foo, bar]
+        m = re.search(r"(.+\[.+\])", line)
+        if m:
+            data["name"] = m.group(1)
+            return data
+
+        # SomeProject
+        # .packages/my_package
+        if "+" not in line and "//" not in line:
+            data['name'] = line
+            data['line'] = line
+            data['using_line'] = True
+            return data
+
+        # hg+http://hg.myproject.org/MyProject#egg=MyProject
+        # svn+http://svn.myproject.org/svn/MyProject/trunk@2019#egg=MyProject
+        # bzr+lp:MyProject#egg=MyProject
+        if "hg+" in line or "svn+" in line or "bzr+" in line:
+            data['name'] = line
+            data['line'] = line
+            data['using_line'] = True
+            return data
+
+        if line.startswith('git'):
+            # git://git.myproject.org/MyProject#egg=MyProject
+            # git://git.myproject.org/MyProject@1234acbd#egg=MyProject
+            # git+git://git.myproject.org/MyProject#egg=MyProject
+            # git+git://git.myproject.org/MyProject@1234abcd#egg=MyProject
+            m = re.search(r"(git:\/\/)(.+)#", line)
+            if m:
+                data['url'] = m.group(2).replace(".git", "")
+                if "@" in data['url']:
+                    data['head'] = data['url'].split("@")[-1]
+                    data['url'] = data['url'].split("@")[0]
+                data['name'] = data['url'].split("/")[-1]
+                return data
+
+            # git+https://git.myproject.org/MyProject#egg=MyProject
+            # git+https://git.myproject.org/MyProject@1234abcd#egg=MyProject
+            # git+ssh://git.myproject.org/MyProject#egg=MyProject
+            # git+ssh://git.myproject.org/MyProject@1234abcd#egg=MyProject
+            m = re.search(r"(git\+\w+:\/\/)(.+)#", line)
+            if m:
+                data['url'] = m.group(2).replace(".git", "")
+                if "@" in data['url']:
+                    data['head'] = data['url'].split("@")[-1]
+                    data['url'] = data['url'].split("@")[0]
+                data['name'] = data['url'].split("/")[-1]
+                return data
+
+            # git+git@git.myproject.org:MyProject#egg=MyProject
+            # git+git@git.myproject.org:MyProject@1234abcd#egg=MyProject
+            m = re.search(r"(git\+git@)(.+)#", line)
+            if m:
+                data['url'] = m.group(2).replace(".git", "").replace(":", "/")
+                if "@" in data['url']:
+                    data['head'] = data['url'].split("@")[-1]
+                    data['url'] = data['url'].split("@")[0]
+                data['name'] = data['url'].split("/")[-1]
+                return data
+
+        # https://git.myproject.org/MyProject#egg=MyProject
+        # https://git.myproject.org/MyProject@commit1234#egg=MyProject
+        if line.startswith("http"):
+            data['line'] = line.split("#")[0]
+            data['using_line'] = True
+            data['name'] = data['line'].split("@")[0].split("/")[-1]
+            return data
+
+        console.error('Cannot parse: {}'.format(original_line))
+        sys.exit(1)
 
     def _create_clone_dir(self, package):
         temp_dir = os.path.join(
@@ -388,11 +448,18 @@ class Outpak():
     def _install_with_url(self, package):
         temp_dir = self._create_clone_dir(package)
         full_package_path = os.path.join(temp_dir, package['name'])
-        ret = self._run_command(
-            "cd {} && git clone https://{}@{}".format(
-                temp_dir, self.token, package['url']),
-            verbose=True
-        )
+        if 'bitbucket' in package['url']:
+            ret = self._run_command(
+                "cd {} && git clone https://{}@{}".format(
+                    temp_dir, self.bit_token, package['url']),
+                verbose=True
+            )
+        else:
+            ret = self._run_command(
+                "cd {} && git clone https://{}@{}".format(
+                    temp_dir, self.git_token, package['url']),
+                verbose=True
+            )
         if ret and package['head']:
             branchs = self._run_command(
                 'cd {} && git fetch --all && git branch -a'.format(
@@ -413,15 +480,22 @@ class Outpak():
                 )
         if ret:
             ret = self._run_command(
-                "cd {} && pip install -e .".format(full_package_path),
+                "cd {} && pip install {}.".format(
+                    full_package_path,
+                    "{} ".format(package['option'])
+                    if package['option'] else ""
+                ),
                 verbose=True
             )
         if not ret:
             sys.exit(1)
 
     def _install_with_pip(self, package):
-        ret = self._run_command(
-            "pip install {}{}{}{}{}".format(
+        if package['using_line']:
+            task = 'pip install "{}"'.format(package['line'])
+        else:
+            task = "pip install {}{}{}{}{}{}".format(
+                "{} ".format(package['option']) if package['option'] else "",
                 package['name'],
                 '"' if package['signal'] and
                 package['signal'] != "=" else "",
@@ -430,7 +504,9 @@ class Outpak():
                 package['version'] if package['version'] else "",
                 '"' if package['signal'] and
                 package['signal'] != "=" else "",
-            ),
+            )
+        ret = self._run_command(
+            task=task,
             verbose=True
         )
         if not ret:
@@ -453,7 +529,7 @@ class Outpak():
             'using Token' if package['url'] else "using pip"
         ), use_prefix=False)
 
-        if package['url']:
+        if package['url'] and not package['using_line']:
             self._install_with_url(package)
         else:
             self._install_with_pip(package)
@@ -472,15 +548,27 @@ class Outpak():
 
         package_list = []
         for file in file_list:
-            console.info("Reading {}...".format(file))
+            console.info("Reading {}.".format(file))
 
             with open(file) as reqfile:
-                file_list = [
-                    self.parse_line(line)
-                    for line in reqfile
-                    if line.replace("\n", "").strip() != "" and
-                    not line.replace("\n", "").strip().startswith("#")
-                ]
+                file_list = []
+                read_line = ""
+                for line in reqfile:
+                    if line.strip().startswith("#") or \
+                            line.strip().startswith("-r") or \
+                            line.strip().replace("\n", "") == "":
+                        continue
+                    if "\\" in line:
+                        read_line += "".join(
+                            line.strip().split("\\")[0]
+                        )
+                        continue
+                    elif not read_line:
+                        read_line = line
+                    read_line = read_line.replace("\n", "").strip()
+                    if read_line != "":
+                        file_list.append(self.parse_line(read_line))
+                    read_line = ""
             package_list += file_list
 
         for package in package_list:

@@ -9,7 +9,8 @@ except ImportError:
 
 PAK = """
 version: "1"
-token_key: TEST_TOKEN_PAK
+github_key: TEST_GIT_TOKEN_PAK
+bitbucket_key: TEST_BIT_TOKEN_PAK
 env_key: TEST_ENV_PAK
 envs:
   dev:
@@ -27,12 +28,56 @@ envs:
 
 REQ = """
 # This is a comment
--e git+git@github.com:chrismaille/outpak@1.0.0#egg=outpak
-Django==2.0.1
-requests[security]>=2.18.1  # another comment
--e git+https://github.com/chrismaille/outpak#egg=outpak
-ipdb
-flask == 1.0.0
+
+-r requirements_test.txt
+SomeProject
+SomeProject == 1.3
+SomeProject >=1.2,<.2.0
+SomeProject[foo, bar]
+SomeProject~=1.4.2
+SomeProject ==5.4 ; python_version < '2.7'
+SomeProject; sys_platform == 'win32'
+SomeProject[foo]>=2.18.1  # another comment
+
+FooProject >= 1.2 --global-option="--no-user-cfg" \
+                  --install-option="--prefix='/usr/local'" \
+                  --install-option="--no-compile"
+
+https://git.myproject.org/MyProject#egg=MyProject
+https://git.myproject.org/MyProject@commit123#egg=MyProject
+
+git://git.myproject.org/MyProject#egg=MyProject
+git+http://git.myproject.org/MyProject#egg=MyProject
+git+https://git.myproject.org/MyProject#egg=MyProject
+git+ssh://git.myproject.org/MyProject#egg=MyProject
+git+git://git.myproject.org/MyProject#egg=MyProject
+git+file://git.myproject.org/MyProject#egg=MyProject
+-e git+git@git.myproject.org:MyProject#egg=MyProject
+
+git://git.myproject.org/MyProject.git@master#egg=MyProject
+git://git.myproject.org/MyProject.git@v1.0#egg=MyProject
+git://git.myproject.org/MyProject.git@da39a3ee5e6b4b0d3255bfef95601890afd80709#egg=MyProject
+
+hg+http://hg.myproject.org/MyProject#egg=MyProject
+hg+https://hg.myproject.org/MyProject#egg=MyProject
+hg+ssh://hg.myproject.org/MyProject#egg=MyProject
+
+hg+http://hg.myproject.org/MyProject@da39a3ee5e6b#egg=MyProject
+hg+http://hg.myproject.org/MyProject@2019#egg=MyProject
+hg+http://hg.myproject.org/MyProject@v1.0#egg=MyProject
+hg+http://hg.myproject.org/MyProject@special_feature#egg=MyProject
+
+svn+svn://svn.myproject.org/svn/MyProject#egg=MyProject
+svn+http://svn.myproject.org/svn/MyProject/trunk@2019#egg=MyProject
+
+bzr+http://bzr.myproject.org/MyProject/trunk#egg=MyProject
+bzr+sftp://user@myproject.org/MyProject/trunk#egg=MyProject
+bzr+ssh://user@myproject.org/MyProject/trunk#egg=MyProject
+bzr+ftp://user@myproject.org/MyProject/trunk#egg=MyProject
+bzr+lp:MyProject#egg=MyProject
+bzr+https://bzr.myproject.org/MyProject/trunk@2019#egg=MyProject
+bzr+http://bzr.myproject.org/MyProject/trunk@v1.0#egg=MyProject
+
 -e ./packages/my_package
 """
 
@@ -80,8 +125,10 @@ class TestOutpakClass(unittest.TestCase):
     def tearDown(self):
         if os.getenv('TEST_ENV_PAK'):
             del os.environ['TEST_ENV_PAK']
-        if os.getenv('TEST_TOKEN_PAK'):
-            del os.environ['TEST_TOKEN_PAK']
+        if os.getenv('TEST_GIT_TOKEN_PAK'):
+            del os.environ['TEST_GIT_TOKEN_PAK']
+        if os.getenv('TEST_BIT_TOKEN_PAK'):
+            del os.environ['TEST_BIT_TOKEN_PAK']
         if os.path.exists(self.path):
             os.remove(self.path)
         if os.path.exists('/tmp/requirements.txt'):
@@ -113,8 +160,8 @@ class TestOutpakClass(unittest.TestCase):
     def test_load_yaml(self):
         self._load_from_file()
         self.assertEqual(
-            self.instance.data['token_key'],
-            'TEST_TOKEN_PAK'
+            self.instance.data['github_key'],
+            'TEST_GIT_TOKEN_PAK'
         )
 
     def test_failed_open_yml(self):
@@ -144,13 +191,19 @@ class TestOutpakClass(unittest.TestCase):
 
     def test_get_token(self):
         self._load_from_file()
-        os.environ['TEST_TOKEN_PAK'] = '1234-5678'
+        os.environ['TEST_GIT_TOKEN_PAK'] = '1234-5678'
+        os.environ['TEST_BIT_TOKEN_PAK'] = 'abcdef:1234'
         self.instance.get_token()
         self.assertEqual(
-            self.instance.token,
+            self.instance.git_token,
             '1234-5678'
         )
-        del os.environ['TEST_TOKEN_PAK']
+        self.assertEqual(
+            self.instance.bit_token,
+            'abcdef:1234'
+        )
+        del os.environ['TEST_GIT_TOKEN_PAK']
+        del os.environ['TEST_BIT_TOKEN_PAK']
 
     def test_token_not_found(self):
         self._load_from_file()
@@ -197,13 +250,15 @@ class TestOutpakClass(unittest.TestCase):
         data = self._parse_line(line)
         self.assertIsNone(data['version'])
 
+
     def test_parse_line_nonsecure_requirement(self):
         line = "-e ./package/my_package"
         data = self._parse_line(line)
         self.assertEqual(
-            data['name'],
-            line.replace(" ", "")
+            data['line'],
+            line.replace("-e", "").strip()
         )
+        self.assertTrue(data['using_line'])
 
     def test_parse_line_git_https(self):
         line_list = [
@@ -229,12 +284,7 @@ class TestOutpakClass(unittest.TestCase):
                 "github.com/chrismaille/outpak"
             )
 
-    def test_fail_parse_line(self):
-        line = "-k xxxxx"
-        with self.assertRaises(SystemExit):
-            self._parse_line(line)
-
-    def test_fail_requirement_in_requirement(self):
+    def test_wrong_requirement_in_requirement(self):
         line = "-r requirements_other.txt"
         with self.assertRaises(SystemExit):
             self._parse_line(line)
@@ -256,11 +306,13 @@ class TestOutpakClass(unittest.TestCase):
     def test_install_package_with_url(self, *args):
         line = "-e git+git@github.com:chrismaille/outpak@1.0.0#egg=outpak"
         os.environ['TEST_ENV_PAK'] = 'development'
-        os.environ['TEST_TOKEN_PAK'] = '12345678'
+        os.environ['TEST_GIT_TOKEN_PAK'] = '12345678'
+        os.environ['TEST_BIT_TOKEN_PAK'] = 'acbde:1234'
         self._load_from_file()
         self.instance.get_current_environment()
         self.instance.get_token()
-        del os.environ['TEST_TOKEN_PAK']
+        del os.environ['TEST_GIT_TOKEN_PAK']
+        del os.environ['TEST_BIT_TOKEN_PAK']
         del os.environ['TEST_ENV_PAK']
         package = self._parse_line(line)
         self.assertIsNone(
@@ -290,7 +342,8 @@ class TestOutpakClass(unittest.TestCase):
         with open('/tmp/requirements.txt', "w") as file:
             file.write(REQ)
         os.environ['TEST_ENV_PAK'] = 'development'
-        os.environ['TEST_TOKEN_PAK'] = '12345678'
+        os.environ['TEST_GIT_TOKEN_PAK'] = '12345abcdef'
+        os.environ['TEST_BIT_TOKEN_PAK'] = "abcde:1234"
         self.assertIsNone(
             self.instance.run()
         )
