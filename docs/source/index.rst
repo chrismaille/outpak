@@ -25,9 +25,6 @@ What is Outpak?
 
 Outpak_ is a tool for installing packages inside ``requirements.txt`` using `Git Personal Tokens`_ or `Bitbucket App Passwords`_, instead of using *SSH keys*. This is specially important on Docker_ projects, when the *SSH keys* are not copied inside the containers.
 
-.. _Git Personal Token: https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/
-.. _Bitbucket App Password: https://confluence.atlassian.com/bitbucket/app-passwords-828781300.html
-
 For example, if you have inside ``requirements.txt`` the following lines::
 
 	-e git+git@git.myproject.org:MyProject#egg=MyProject
@@ -42,7 +39,7 @@ Outpak_ will:
 
 [*] Clone the repositories using the token/password and directory informed in ``pak.yml`` file::
 
-	$ git clone https://git.myproject.org/myproject /tmp/myproject
+	$ git clone https://my_git_token@git.myproject.org/myproject /tmp/myproject
 
 [*] Run `git reset` to correct commit if informed::
 
@@ -71,3 +68,5 @@ Indices and tables
 .. _issues page: https://github.com/chrismaille/outpak/issues
 .. _Outpak: https://github.com/chrismaille/outpak
 .. _Docker: https://www.docker.com
+.. _Git Personal Tokens: https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/
+.. _Bitbucket App Passwords: https://confluence.atlassian.com/bitbucket/app-passwords-828781300.html

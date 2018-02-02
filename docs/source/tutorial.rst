@@ -14,7 +14,7 @@ First, install Outpak using the command::
 Creating the pak.yml file
 --------------------------
 
-Then, for a simple example, let's consider the following environment for your project, loaded in the `.bashrc` file::
+For a simple example, let's consider the following environment for your project, loaded in the `.bashrc` file::
 
 	$ export MY_ENVIRONMENT="docker"
 	$ export MY_GIT_TOKEN="12345abcde"
