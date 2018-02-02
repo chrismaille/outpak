@@ -1,5 +1,4 @@
-"""
-Outpak.
+"""Outpak.
 
 Usage:
   pak install [--config=<path>]
@@ -19,6 +18,13 @@ from outpak.main import Outpak
 
 
 def get_path():
+    """Get pak.yml full path.
+
+    Returns
+    -------
+        Str: full path from current path
+
+    """
     return os.path.join(
         os.getcwd(),
         'pak.yml'
@@ -26,6 +32,13 @@ def get_path():
 
 
 def get_from_env():
+    """Get OUTPAK_FILE value.
+
+    Returns
+    -------
+        Str: value from memory
+
+    """
     return os.getenv('OUTPAK_FILE')
 
 
@@ -47,7 +60,6 @@ def run():
     if arguments['install']:
         newpak = Outpak(path)
         newpak.run()
-
 
 
 if __name__ == "__main__":
