@@ -6,6 +6,8 @@
 [![Coverage Status](https://coveralls.io/repos/github/chrismaille/outpak/badge.svg)](https://coveralls.io/github/chrismaille/outpak)
 [![Documentation Status](https://readthedocs.org/projects/outpak/badge/?version=latest)](http://outpak.readthedocs.io/en/latest/?badge=latest)
 
+***
+
 **Read the Docs**: http://outpak.readthedocs.io/
 
 **Source Code**: https://github.com/chrismaille/outpak
@@ -55,5 +57,7 @@ $ pak install --config /path/to/pak/file
 ```
 
 If you do not inform the path for the `pak.yml` file, Outpak_ will attempt to find it in the current directory. You can also you can set the `OUTPAK_FILE` environment variable for where the `pak.yml` file is located.
+
+### Further reading
 
 Please check full documentation in [Read the Docs](http://outpak.readthedocs.io/)
