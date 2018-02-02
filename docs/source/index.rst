@@ -23,23 +23,41 @@ This document will guide you how to install, configure and use Outpak_ in your p
 What is Outpak?
 ---------------
 
-Outpak_ is a tool for installing packages inside ``requirements.txt`` using `Git Personal Tokens`_ or `Bitbucket App Passwords`_, instead of using *SSH keys*.
+Outpak_ is a tool for installing packages inside ``requirements.txt`` using `Git Personal Tokens`_ or `Bitbucket App Passwords`_, instead of using *SSH keys*. This is specially important on Docker_ projects, when the *SSH keys* are not copied inside the containers.
 
-This is specially important on Docker_ projects, when the SSH keys are not copied inside the containers.
+.. _Git Personal Token: https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/
+.. _Bitbucket App Password: https://confluence.atlassian.com/bitbucket/app-passwords-828781300.html
 
-For instance, in those examples inside ``requirements.txt``::
+For example, if you have inside ``requirements.txt`` the following lines::
 
 	-e git+git@git.myproject.org:MyProject#egg=MyProject
 	-e git://git.myproject.org/MyProject.git@da39a3ee5e6b4b0d3255bfef95601890afd80709#egg=MyProject
 
+Outpak_ will:
 
-Outpak_ will parse the urls, clone the repositories using the token/password, git reset to correct commit when informed, and installing it using ``pip install -e .`` command.
+[*] Parse the urls::
+
+	from: git+git@git.myproject.org:MyProject or git://git.myproject.org/MyProject.git
+	to: https://git.myproject.org/myproject
+
+[*] Clone the repositories using the token/password and directory informed in ``pak.yml`` file::
+
+	$ git clone https://git.myproject.org/myproject /tmp/myproject
+
+[*] Run `git reset` to correct commit if informed::
+
+	$ cd /tmp/myproject && git reset --hard da39a3ee5e6b4b0d3255bfef95601890afd80709
+
+[*] And installing package using  the``pip install -e .`` command::
+
+	$ cd /tmp/myproject && pip install -e .
+
+.. note:: Outpak_ are tested for Bitbucket and Github services. For other DVCS services please check our `issues page`_ on github.
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
-   introduction
    tutorial
    reference
 
@@ -50,7 +68,6 @@ Indices and tables
 * :ref:`modindex`
 * :ref:`search`
 
+.. _issues page: https://github.com/chrismaille/outpak/issues
 .. _Outpak: https://github.com/chrismaille/outpak
 .. _Docker: https://www.docker.com
-.. _Git Personal Token: https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/
-.. _Bitbucket App Password: https://confluence.atlassian.com/bitbucket/app-passwords-828781300.html
