@@ -29,7 +29,7 @@ else:
 setup(
     name='outpak',
     version=version,
-    description='PIP install wrapper for Git Personal Token',
+    description='Install git+protocol packages in requirements.txt without SSH keys',
     long_description=long_description,
     author='Chris Maillefaud',
     include_package_data=True,

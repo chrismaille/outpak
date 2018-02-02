@@ -1,7 +1,7 @@
 Tutorial
 ========
 
-This document will explain how to install Outpak_ and make the first use in your project.
+This document will explain how to install Outpak_ and use it in your projects.
 
 Installing Outpak
 -----------------
@@ -22,7 +22,7 @@ For a simple example, let's consider the following environment for your project,
 
 Based on these values, we can create the ``pak.yml`` configuration file:
 
-.. code-block:: YAML
+.. code-block:: yaml
 
 	version: "1"
 	github_key: MY_GIT_TOKEN

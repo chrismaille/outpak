@@ -23,29 +23,29 @@ This document will guide you how to install, configure and use Outpak_ in your p
 What is Outpak?
 ---------------
 
-Outpak_ is a tool for installing packages inside ``requirements.txt`` using `Git Personal Tokens`_ or `Bitbucket App Passwords`_, instead of using *SSH keys*. This is specially important on Docker_ projects, when the *SSH keys* are not copied inside the containers.
+Outpak_ is a tool for installing packages inside ``requirements.txt`` using `Git Personal Tokens`_ or `Bitbucket App Passwords`_, instead of using *SSH keys*. This is specially important on Docker_ projects, if you don't want to copy the *SSH keys* inside the containers.
 
-For example, if you have inside ``requirements.txt`` the following lines::
+For example, if you have on ``requirements.txt`` the following lines::
 
 	-e git+git@git.myproject.org:MyProject#egg=MyProject
 	-e git://git.myproject.org/MyProject.git@da39a3ee5e6b4b0d3255bfef95601890afd80709#egg=MyProject
 
 Outpak_ will:
 
-[*] Parse the urls::
+1. Parse the urls::
 
 	from: git+git@git.myproject.org:MyProject or git://git.myproject.org/MyProject.git
 	to: https://git.myproject.org/myproject
 
-[*] Clone the repositories using the token/password and directory informed in ``pak.yml`` file::
+2. Clone the repositories using the token/password and directory informed in ``pak.yml`` file::
 
 	$ git clone https://my_git_token@git.myproject.org/myproject /tmp/myproject
 
-[*] Run `git reset` to correct commit if informed::
+3. Run `git reset` to correct commit if informed::
 
 	$ cd /tmp/myproject && git reset --hard da39a3ee5e6b4b0d3255bfef95601890afd80709
 
-[*] And installing package using  the``pip install -e .`` command::
+4. And installing package using  the``pip install -e .`` command::
 
 	$ cd /tmp/myproject && pip install -e .
 
