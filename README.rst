@@ -59,3 +59,10 @@ After create the configuration file, you can start install packages with the com
 	$ pak install --config /path/to/pak/file
 
 If you do not inform the path for the ``pak.yml`` file, Outpak_ will attempt to find it in the current directory. You can also you can set the ``OUTPAK_FILE`` environment variable for where the ``pak.yml`` file is located.
+
+Please check full documentation in http://outpak.readthedocs.io/
+
+.. _Outpak: https://github.com/chrismaille/outpak
+.. _Docker: https://www.docker.com
+.. _Git Personal Tokens: https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/
+.. _Bitbucket App Passwords: https://confluence.atlassian.com/bitbucket/app-passwords-828781300.html

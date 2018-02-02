@@ -10,7 +10,7 @@
 
 **Source Code**: https://github.com/chrismaille/outpak
 
-_Outpak_ is a tool for installing packages inside `requirements.txt` using [Git Personal Tokens]() or [Bitbucket App Passwords](), instead of using _SSH keys_. This is specially important on [Docker]() projects, if you don't want to copy the _SSH keys_ inside the containers.
+**Outpak** is a tool for installing packages inside `requirements.txt` using [Git Personal Tokens](https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/) or [Bitbucket App Passwords](https://confluence.atlassian.com/bitbucket/app-passwords-828781300.html), instead of using _SSH keys_. This is specially important on [Docker](https://www.docker.com) projects, if you don't want to copy the _SSH keys_ inside the containers.
 
 ### Install Outpak
 
@@ -55,3 +55,5 @@ $ pak install --config /path/to/pak/file
 ```
 
 If you do not inform the path for the `pak.yml` file, Outpak_ will attempt to find it in the current directory. You can also you can set the `OUTPAK_FILE` environment variable for where the `pak.yml` file is located.
+
+Please check full documentation in [Read the Docs](http://outpak.readthedocs.io/)
