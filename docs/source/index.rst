@@ -14,23 +14,26 @@ Welcome to Outpak's documentation!
 	:target: https://github.com/chrismaille/outpak
 .. image:: https://coveralls.io/repos/github/chrismaille/outpak/badge.svg?branch=master
 	:target: https://coveralls.io/github/chrismaille/outpak?branch=master
+.. image:: https://readthedocs.org/projects/outpak/badge/?version=latest
+	:target: http://outpak.readthedocs.io/en/latest/?badge=latest
+	:alt: Documentation Status
 
 This document will guide you how to install, configure and use Outpak_ in your projects.
 
 What is Outpak?
 ---------------
 
-Outpak_ is a tool for installing packages inside ``requirements.txt`` using *Git Personal Tokens* or **Bitbucket App Passwords**, instead of using `SSH keys`.
+Outpak_ is a tool for installing packages inside ``requirements.txt`` using `Git Personal Tokens`_ or `Bitbucket App Passwords`_, instead of using *SSH keys*.
 
-This is specially important on Docker_ projects, when the SSH keys are not inside the containers.
+This is specially important on Docker_ projects, when the SSH keys are not copied inside the containers.
 
-For those examples inside ``requirements.txt``::
+For instance, in those examples inside ``requirements.txt``::
 
 	-e git+git@git.myproject.org:MyProject#egg=MyProject
 	-e git://git.myproject.org/MyProject.git@da39a3ee5e6b4b0d3255bfef95601890afd80709#egg=MyProject
 
 
-Outpak_ will parse the url, clone the repositories using the token/password, git reset to correct commit when informed, and installing it using pip.
+Outpak_ will parse the urls, clone the repositories using the token/password, git reset to correct commit when informed, and installing it using ``pip install -e .`` command.
 
 .. toctree::
    :maxdepth: 2
@@ -49,3 +52,5 @@ Indices and tables
 
 .. _Outpak: https://github.com/chrismaille/outpak
 .. _Docker: https://www.docker.com
+.. _Git Personal Token: https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/
+.. _Bitbucket App Password: https://confluence.atlassian.com/bitbucket/app-passwords-828781300.html
