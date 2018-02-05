@@ -1,6 +1,6 @@
 # Welcome to Outpak's documentation!
 
-[![PyPI](https://img.shields.io/pypi/v/nine.svg)](https://github.com/chrismaille/outpak)
+[![PyPI](https://img.shields.io/pypi/v/outpak.svg)](https://github.com/chrismaille/outpak)
 [![Build Status](https://travis-ci.org/chrismaille/outpak.svg?branch=master)](https://travis-ci.org/chrismaille/outpak)
 [![PyPI](https://img.shields.io/pypi/pyversions/outpak.svg)](https://github.com/chrismaille/outpak)
 [![Coverage Status](https://coveralls.io/repos/github/chrismaille/outpak/badge.svg)](https://coveralls.io/github/chrismaille/outpak)

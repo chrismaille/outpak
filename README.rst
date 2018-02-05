@@ -1,7 +1,7 @@
 Welcome to Outpak's documentation!
 ==================================
 
-.. image:: https://img.shields.io/pypi/v/nine.svg
+.. image:: https://img.shields.io/pypi/v/outpak.svg
 	:target: https://pypi.python.org/pypi/outpak
 .. image:: https://travis-ci.org/chrismaille/outpak.svg?branch=master
     :target: https://travis-ci.org/chrismaille/outpak
