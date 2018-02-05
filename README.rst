@@ -16,6 +16,9 @@ Welcome to Outpak's documentation!
 .. image:: https://api.codeclimate.com/v1/badges/8b21c61fe9130b502add/maintainability
    :target: https://codeclimate.com/github/chrismaille/outpak/maintainability
    :alt: Maintainability
+.. image:: https://requires.io/github/chrismaille/outpak/requirements.svg?branch=master
+     :target: https://requires.io/github/chrismaille/outpak/requirements/?branch=master
+     :alt: Requirements Status
 
 * Read the Docs: http://outpak.readthedocs.io/
 * Source Code: https://github.com/chrismaille/outpak
