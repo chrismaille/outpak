@@ -5,6 +5,8 @@
 [![PyPI](https://img.shields.io/pypi/pyversions/outpak.svg)](https://github.com/chrismaille/outpak)
 [![Coverage Status](https://coveralls.io/repos/github/chrismaille/outpak/badge.svg)](https://coveralls.io/github/chrismaille/outpak)
 [![Documentation Status](https://readthedocs.org/projects/outpak/badge/?version=latest)](http://outpak.readthedocs.io/en/latest/?badge=latest)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/752016eb6b864a01af676a2c9548090b)](https://www.codacy.com/app/chrismaille/outpak?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=chrismaille/outpak&amp;utm_campaign=Badge_Grade)
+[![Maintainability](https://api.codeclimate.com/v1/badges/8b21c61fe9130b502add/maintainability)](https://codeclimate.com/github/chrismaille/outpak/maintainability)
 
 ***
 

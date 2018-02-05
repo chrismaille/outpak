@@ -12,7 +12,10 @@ Welcome to Outpak's documentation!
 .. image:: https://readthedocs.org/projects/outpak/badge/?version=latest
 	:target: http://outpak.readthedocs.io/en/latest/?badge=latest
 	:alt: Documentation Status
-
+.. image:: https://api.codacy.com/project/badge/Grade/752016eb6b864a01af676a2c9548090b    :target: https://www.codacy.com/app/chrismaille/outpak?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=chrismaille/outpak&amp;utm_campaign=Badge_Grade
+.. image:: https://api.codeclimate.com/v1/badges/8b21c61fe9130b502add/maintainability
+   :target: https://codeclimate.com/github/chrismaille/outpak/maintainability
+   :alt: Maintainability
 
 * Read the Docs: http://outpak.readthedocs.io/
 * Source Code: https://github.com/chrismaille/outpak
