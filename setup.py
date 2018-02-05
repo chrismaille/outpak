@@ -1,6 +1,6 @@
 """Setup.py."""
 import datetime
-from codecs import open
+from codecs import open as copen
 from os import path
 from setuptools import setup, find_packages
 from outpak import __version__
@@ -9,7 +9,7 @@ from outpak import __version__
 here = path.abspath(path.dirname(__file__))
 
 # Get the long description from the README file
-with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
+with copen(path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
 install_requires = [
@@ -29,7 +29,8 @@ else:
 setup(
     name='outpak',
     version=version,
-    description='Install git+protocol packages in requirements.txt without SSH keys',
+    description='Install git+protocol packages in '
+    'requirements.txt without SSH keys',
     long_description=long_description,
     author='Chris Maillefaud',
     include_package_data=True,

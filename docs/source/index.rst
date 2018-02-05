@@ -6,7 +6,7 @@
 Welcome to Outpak's documentation!
 ==================================
 
-.. image:: https://img.shields.io/pypi/v/nine.svg
+.. image:: https://img.shields.io/pypi/v/outpak.svg
 	:target: https://pypi.python.org/pypi/outpak
 .. image:: https://travis-ci.org/chrismaille/outpak.svg?branch=master
     :target: https://travis-ci.org/chrismaille/outpak
@@ -17,6 +17,13 @@ Welcome to Outpak's documentation!
 .. image:: https://readthedocs.org/projects/outpak/badge/?version=latest
 	:target: http://outpak.readthedocs.io/en/latest/?badge=latest
 	:alt: Documentation Status
+.. image:: https://api.codacy.com/project/badge/Grade/752016eb6b864a01af676a2c9548090b    :target: https://www.codacy.com/app/chrismaille/outpak?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=chrismaille/outpak&amp;utm_campaign=Badge_Grade
+.. image:: https://api.codeclimate.com/v1/badges/8b21c61fe9130b502add/maintainability
+   :target: https://codeclimate.com/github/chrismaille/outpak/maintainability
+   :alt: Maintainability
+.. image:: https://requires.io/github/chrismaille/outpak/requirements.svg?branch=master
+     :target: https://requires.io/github/chrismaille/outpak/requirements/?branch=master
+     :alt: Requirements Status
 
 This document will guide you how to install, configure and use Outpak_ in your projects.
 
