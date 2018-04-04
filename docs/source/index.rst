@@ -1,3 +1,8 @@
+.. Outpak documentation master file, created by
+   sphinx-quickstart on Thu Feb  1 22:01:22 2018.
+   You can adapt this file completely to your liking, but it should at least
+   contain the root `toctree` directive.
+
 Welcome to Outpak's documentation!
 ==================================
 
@@ -20,57 +25,54 @@ Welcome to Outpak's documentation!
      :target: https://requires.io/github/chrismaille/outpak/requirements/?branch=master
      :alt: Requirements Status
 
-* Read the Docs: http://outpak.readthedocs.io/
-* Source Code: https://github.com/chrismaille/outpak
+This document will guide you how to install, configure and use Outpak_ in your projects.
+
+What is Outpak?
+---------------
 
 Outpak_ is a tool for installing packages inside ``requirements.txt`` using `Git Personal Tokens`_ or `Bitbucket App Passwords`_, instead of using *SSH keys*. This is specially important on Docker_ projects, if you don't want to copy the *SSH keys* inside the containers.
 
-Install Outpak
------------------
+For example, if you have on ``requirements.txt`` the following lines::
 
-Install Outpak using the command::
+	-e git+git@git.myproject.org:MyProject#egg=MyProject
+	-e git://git.myproject.org/MyProject.git@da39a3ee5e6b4b0d3255bfef95601890afd80709#egg=MyProject
 
-	$ pip install outpak
+Outpak_ will:
 
-Create the pak.yml file
---------------------------
+1. Parse the urls::
 
-For a simple example, let's consider the following environment for your project, loaded in the `.bashrc` file::
+	from: git+git@git.myproject.org:MyProject or git://git.myproject.org/MyProject.git
+	to: https://git.myproject.org/myproject
 
-	$ export MY_ENVIRONMENT="docker"
-	$ export MY_GIT_TOKEN="12345abcde"
+2. Clone the repositories using the token/password and directory informed in ``pak.yml`` file::
 
-Based on these values, we can create the ``pak.yml`` configuration file:
+	$ git clone https://my_git_token@git.myproject.org/myproject /tmp/myproject
 
-.. code-block:: yaml
+3. Run `git reset` to correct commit if informed::
 
-	version: "1"
-	github_key: MY_GIT_TOKEN
-	env_key: MY_ENVIRONMENT
-	envs:
-	  Docker:
-	    key_value: docker
-	    clone_dir: /opt/src
-	    files:
-	      - requirements.txt
-	      - requirements_test.txt
+	$ cd /tmp/myproject && git reset --hard da39a3ee5e6b4b0d3255bfef95601890afd80709
 
-Save this file on same path where is your ``requirements.txt`` files are located.
+4. And installing package using  the``pip install -e .`` command::
 
-Run Outpak
------------
+	$ cd /tmp/myproject && pip install -e .
 
-After create the configuration file, you can start install packages with the command::
+.. note:: Outpak_ are tested for Bitbucket and Github services. For other DVCS services please check our `issues page`_ on github.
 
-	$ pak install --config /path/to/pak/file
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
 
-If you do not inform the path for the ``pak.yml`` file, Outpak_ will attempt to find it in the current directory. You can also you can set the ``OUTPAK_FILE`` environment variable for where the ``pak.yml`` file is located.
+   tutorial
+   reference
 
-Further reading
----------------
+Indices and tables
+==================
 
-Please check full documentation in http://outpak.readthedocs.io/
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
 
+.. _issues page: https://github.com/chrismaille/outpak/issues
 .. _Outpak: https://github.com/chrismaille/outpak
 .. _Docker: https://www.docker.com
 .. _Git Personal Tokens: https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/
