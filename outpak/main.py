@@ -267,8 +267,17 @@ class Outpak():
 
     def check_venv(self):
         """Check if virtualenv is active."""
+        def is_venv():
+            return (
+                hasattr(sys, 'real_prefix') or  # virtualenv
+                (
+                    hasattr(sys, 'base_prefix') and
+                    sys.base_prefix != sys.prefix  # pyvenv
+                )
+            )
+
         if self.environment.get('use_virtual', False):
-            if hasattr(sys, 'real_prefix'):
+            if is_venv():
                 virtual = sys.prefix
                 console.info(
                     "Running in virtual environment: {}".format(virtual))

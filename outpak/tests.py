@@ -257,7 +257,15 @@ class TestOutpakClass(unittest.TestCase):
         os.environ['TEST_ENV_PAK'] = 'development'
         self.instance.get_current_environment()
         del os.environ['TEST_ENV_PAK']
-        if hasattr(sys, 'real_prefix'):
+        is_venv = (
+            hasattr(sys, 'real_prefix') or  # virtualenv
+            (
+                hasattr(sys, 'base_prefix') and
+                sys.base_prefix != sys.prefix  # pyvenv
+            )
+        )
+
+        if is_venv:
             self.assertIsNone(self.instance.check_venv())
         else:
             with self.assertRaises(SystemExit):
