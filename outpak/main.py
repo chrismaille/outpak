@@ -4,6 +4,7 @@ import re
 import shutil
 import subprocess
 import sys
+
 import yaml
 from buzio import console
 
@@ -118,7 +119,7 @@ class Outpak():
             error = True
             console.error("You must define version in {}".format(self.path))
         elif self.data['version'] == "1":
-            if not self.data.get('token_key') and\
+            if not self.data.get('token_key') and \
                     not self.data.get('github_key') and \
                     not self.data.get('bitbucket_key'):
                 error = True
@@ -270,11 +271,11 @@ class Outpak():
         """Check if virtualenv is active."""
         def is_venv():
             return (
-                hasattr(sys, 'real_prefix') or  # virtualenv
-                (
-                    hasattr(sys, 'base_prefix') and
-                    sys.base_prefix != sys.prefix  # pyvenv
-                )
+                    hasattr(sys, 'real_prefix') or  # virtualenv
+                    (
+                            hasattr(sys, 'base_prefix') and
+                            sys.base_prefix != sys.prefix  # pyvenv
+                    )
             )
 
         if self.environment.get('use_virtual', False):
@@ -467,13 +468,13 @@ class Outpak():
             ret = self._run_command(
                 "cd {} && git clone https://{}@{}".format(
                     temp_dir, self.bit_token, package['url']),
-                verbose=True
+                verbose=not self.run_silently
             )
         else:
             ret = self._run_command(
                 "cd {} && git clone https://{}@{}".format(
                     temp_dir, self.git_token, package['url']),
-                verbose=True
+                verbose=not self.run_silently
             )
         if ret and package['head']:
             branchs = self._run_command(
@@ -485,13 +486,13 @@ class Outpak():
                 ret = self._run_command(
                     "cd {} && git checkout {}".format(
                         full_package_path, package['head']),
-                    verbose=True
+                    verbose=not self.run_silently
                 )
             else:
                 ret = self._run_command(
                     "cd {} && git reset --hard {}".format(
                         full_package_path, package['head']),
-                    verbose=True
+                    verbose=not self.run_silently
                 )
         if ret:
             ret = self._run_command(
@@ -516,13 +517,10 @@ class Outpak():
                 '-q ' if self.run_silently else '',
                 "{} ".format(package['option']) if package['option'] else "",
                 package['name'],
-                '"' if package['signal'] and
-                package['signal'] != "=" else "",
-                "{}=".format(
-                    package['signal']) if package['signal'] else "",
+                '"' if package['signal'] and package['signal'] != "=" else "",
+                "{}=".format(package['signal']) if package['signal'] else "",
                 package['version'] if package['version'] else "",
-                '"' if package['signal'] and
-                package['signal'] != "=" else "",
+                '"' if package['signal'] and package['signal'] != "=" else "",
             )
         ret = self._run_command(
             task=task,
@@ -539,8 +537,7 @@ class Outpak():
         """
         console.section("Installing {} ({}{})".format(
             package['name'],
-            package['signal'] if package['signal'] and
-            package['signal'] != "=" else "",
+            package['signal'] if package['signal'] and package['signal'] != "=" else "",
             package['version'] if package['version'] else "latest"
         ))
         console.info("Installing {}{}".format(
@@ -560,6 +557,9 @@ class Outpak():
         self.get_current_environment()
         self.get_token()
         self.check_venv()
+
+        if self.run_silently:
+            console.info('Running in silent mode')
 
         file_list = self.get_files()
         if not file_list:
