@@ -1,23 +1,25 @@
-"""Outpak.
+"""Outpak v1.1.0.
 
-Usage:
-  pak install [--config=<path>]
-  pak -h | --help
-  pak --version
+usage: pak [-h] [-q] [-c CONFIG] [-v] {install}
 
-Options:
-  -h --help         Show this screen.
-  --version         Show version.
-  --config=<path>  Full path for pak.yml
+positional arguments:
+  {install}
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -q, --quiet           Calls pip with the -q (quiet) option
+  -c CONFIG, --config CONFIG
+                        Full path to the config file
+  -v, --version         Displays version and quits
+G
 """
 import os
-from docopt import docopt
+import argparse
 from outpak import __version__
-from buzio import console
 from outpak.main import Outpak
 
 
-def get_path():
+def get_pak_yml_path():
     """Get pak.yml full path.
 
     Returns
@@ -25,40 +27,45 @@ def get_path():
         Str: full path from current path
 
     """
-    return os.path.join(
+    default_path = os.path.join(
         os.getcwd(),
         'pak.yml'
     )
-
-
-def get_from_env():
-    """Get OUTPAK_FILE value.
-
-    Returns
-    -------
-        Str: value from memory
-
-    """
-    return os.getenv('OUTPAK_FILE')
+    return os.environ.get('OUTPAK_FILE', None) or default_path
 
 
 def run():
     """Run main command for outpak."""
-    console.box("Outpak v{}".format(__version__))
-    arguments = docopt(__doc__, version=__version__)
+    parser = argparse.ArgumentParser(
+        description='Outpak v{}'.format(__version__)
+    )
+    parser.add_argument(
+        '-q', '--quiet',
+        action='store_true',
+        default=False,
+        help='Calls pip with the -q (quiet) option'
+    )
+    parser.add_argument(
+        '-c', '--config',
+        default=get_pak_yml_path(),
+        required=False,
+        help='Full path to the config file'
+    )
+    parser.add_argument(
+        '-v', '--version',
+        action='version',
+        version=__version__,
+        help='Displays version and quits'
+    )
+    parser.add_argument(
+        'command',
+        choices=['install']
+    )
 
-    path = None
-    if arguments['--config']:
-        path = arguments['--config']
+    arguments = parser.parse_args()
 
-    if not path:
-        path = get_from_env()
-
-    if not path:
-        path = get_path()
-
-    if arguments['install']:
-        newpak = Outpak(path)
+    if arguments.command == 'install':
+        newpak = Outpak(arguments.config, pip_quiet=arguments.quiet)
         newpak.run()
 
 
