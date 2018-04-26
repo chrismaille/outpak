@@ -1,12 +1,13 @@
 """Outpak.
 
 Usage:
-  pak install [--config=<path>]
+  pak install [--config=<path>] [--quiet]
   pak -h | --help
   pak --version
 
 Options:
   -h --help         Show this screen.
+  --quiet           Run pip with -q option (silent mode)
   --version         Show version.
   --config=<path>  Full path for pak.yml
 """
@@ -59,6 +60,7 @@ def run():
 
     if arguments['install']:
         newpak = Outpak(path)
+        newpak.run_silently = arguments['--quiet']
         newpak.run()
 
 

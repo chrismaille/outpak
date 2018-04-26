@@ -118,7 +118,8 @@ class TestOutpakRunModule(unittest.TestCase):
         autospec=True,
         return_value={
             '--config': None,
-            'install': True
+            'install': True,
+            '--quiet': False
         }
     )
     def test_run(self, *args):

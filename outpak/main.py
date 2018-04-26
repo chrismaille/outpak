@@ -29,6 +29,7 @@ class Outpak():
         self.path = path
         self.git_token = ""
         self.bit_token = ""
+        self.run_silently = False
 
     def _run_command(
             self,
@@ -494,10 +495,10 @@ class Outpak():
                 )
         if ret:
             ret = self._run_command(
-                "cd {} && pip install {}.".format(
+                "cd {} && pip install {}{}.".format(
                     full_package_path,
-                    "{} ".format(package['option'])
-                    if package['option'] else ""
+                    "-q " if self.run_silently and package['option'] is not '-q' else "",
+                    "{} ".format(package['option']) if package['option'] else ""
                 ),
                 verbose=True
             )
@@ -506,9 +507,13 @@ class Outpak():
 
     def _install_with_pip(self, package):
         if package['using_line']:
-            task = 'pip install "{}"'.format(package['line'])
+            task = 'pip install {}"{}"'.format(
+                '-q ' if self.run_silently else '',
+                package['line']
+            )
         else:
-            task = "pip install {}{}{}{}{}{}".format(
+            task = "pip install {}{}{}{}{}{}{}".format(
+                '-q ' if self.run_silently else '',
                 "{} ".format(package['option']) if package['option'] else "",
                 package['name'],
                 '"' if package['signal'] and
@@ -540,7 +545,7 @@ class Outpak():
         ))
         console.info("Installing {}{}".format(
             "at head {} ".format(package['head']) if package['head'] else "",
-            'using Token' if package['url'] else "using pip"
+            'using Token' if package['url'] else "using pip{}".format(' (silent)' if self.run_silently else '')
         ), use_prefix=False)
 
         if package['url'] and not package['using_line']:
