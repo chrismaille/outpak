@@ -61,6 +61,8 @@ $ pak install --config /path/to/pak/file
 
 If you do not inform the path for the `pak.yml` file, Outpak_ will attempt to find it in the current directory. You can also you can set the `OUTPAK_FILE` environment variable for where the `pak.yml` file is located.
 
+You can also, use the `--quiet` option to run pip in silent mode.
+
 ### Further reading
 
 Please check full documentation in [Read the Docs](http://outpak.readthedocs.io/)

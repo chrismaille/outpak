@@ -62,7 +62,7 @@ After create the configuration file, you can start install packages with the com
 
 	$ pak install --config /path/to/pak/file
 
-You can also, use the ``-q`` option to run pip in silent mode.
+You can also, use the ``--quiet`` option to run pip in silent mode.
 
 If you do not inform the path for the ``pak.yml`` file, Outpak_ will attempt to find it in the current directory.
 
