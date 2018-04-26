@@ -29,6 +29,7 @@ class Outpak():
         self.path = path
         self.git_token = ""
         self.bit_token = ""
+        self.pip_quiet = kwargs.get('pip_quiet', False)
 
     def _run_command(
             self,
@@ -494,8 +495,9 @@ class Outpak():
                 )
         if ret:
             ret = self._run_command(
-                "cd {} && pip install {}.".format(
+                "cd {} && pip install {}{}.".format(
                     full_package_path,
+                    "-q " if self.pip_quiet else "",
                     "{} ".format(package['option'])
                     if package['option'] else ""
                 ),
@@ -506,9 +508,9 @@ class Outpak():
 
     def _install_with_pip(self, package):
         if package['using_line']:
-            task = 'pip install "{}"'.format(package['line'])
+            pip_install_args = '"{}"'.format(package['line'])
         else:
-            task = "pip install {}{}{}{}{}{}".format(
+            pip_install_args = '{}{}{}{}{}{}'.format(
                 "{} ".format(package['option']) if package['option'] else "",
                 package['name'],
                 '"' if package['signal'] and
@@ -519,6 +521,10 @@ class Outpak():
                 '"' if package['signal'] and
                 package['signal'] != "=" else "",
             )
+        task = 'pip install {}{}'.format(
+            '-q ' if self.pip_quiet else '',
+            pip_install_args
+        )
         ret = self._run_command(
             task=task,
             verbose=True

@@ -11,9 +11,9 @@ import os
 from outpak.main import Outpak
 
 try:
-    from unittest.mock import patch
+    from unittest.mock import patch, MagicMock
 except ImportError:
-    from mock import patch
+    from mock import patch, MagicMock
 
 PAK = """
 version: "1"
@@ -93,19 +93,19 @@ bzr+http://bzr.myproject.org/MyProject/trunk@v1.0#egg=MyProject
 class TestOutpakRunModule(unittest.TestCase):
     """Run module tests."""
 
-    def test_get_path(self):
+    def get_pak_yml_path_default(self):
         """test_get_path."""
-        from outpak.run import get_path
+        from outpak.run import get_pak_yml_path
         self.assertEqual(
-            get_path(),
+            get_pak_yml_path(),
             os.path.join(os.getcwd(), 'pak.yml')
         )
 
-    def test_get_from_env(self):
+    def get_pak_yml_path_from_env(self):
         """test_get_from_env."""
-        from outpak.run import get_from_env
+        from outpak.run import get_pak_yml_path
         os.environ['OUTPAK_FILE'] = '/tmp/pak.yml'
-        ret = get_from_env()
+        ret = get_pak_yml_path()
         del os.environ['OUTPAK_FILE']
         self.assertEqual(
             ret,
@@ -114,12 +114,8 @@ class TestOutpakRunModule(unittest.TestCase):
 
     @patch("outpak.run.Outpak", autospec=True)
     @patch(
-        "outpak.run.docopt",
-        autospec=True,
-        return_value={
-            '--config': None,
-            'install': True
-        }
+        "outpak.run.argparse.ArgumentParser",
+        autospec=True
     )
     def test_run(self, *args):
         """test_run."""
@@ -380,6 +376,54 @@ class TestOutpakClass(unittest.TestCase):
         package = self._parse_line(line)
         self.assertIsNone(
             self.instance.install_package(package)
+        )
+
+    def test_install_with_pip(self):
+        """test_install_with_pip."""
+        def assert_command(package, task, pip_quiet=False):
+            pak = Outpak(self.path, pip_quiet=pip_quiet)
+            pak._run_command = MagicMock()
+            pak._install_with_pip(package)
+            pak._run_command.assert_called_once_with(
+                task=task,
+                verbose=True
+            )
+
+        assert_command({
+                'name': 'foo',
+                'option': '-opt',
+                'version': '1.2.3',
+                'signal': '>',
+                'using_line': False
+            },
+            'pip install -opt foo">=1.2.3"'
+        )
+        assert_command({
+                'name': 'foo',
+                'option': None,
+                'version': '1.2.3',
+                'signal': '=',
+                'using_line': False
+            },
+            'pip install foo==1.2.3'
+        )
+        assert_command({
+                'name': 'foo',
+                'option': '-e',
+                'version': '1.2.3',
+                'signal': '<',
+                'using_line': False
+            },
+            'pip install -q -e foo"<=1.2.3"',
+            pip_quiet=True
+        )
+        assert_command({
+                'line': 'foo==6.6.6',
+                'option': None,
+                'using_line': True
+            },
+            'pip install -q "foo==6.6.6"',
+            pip_quiet=True
         )
 
     @patch("outpak.main.subprocess.check_output",

@@ -14,7 +14,6 @@ with copen(path.join(here, 'README.rst'), encoding='utf-8') as f:
 
 install_requires = [
     "buzio",
-    "docopt",
     "PyYAML"
 ]
 
