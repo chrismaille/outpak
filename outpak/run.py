@@ -15,10 +15,12 @@ import os
 from docopt import docopt
 from outpak import __version__
 from buzio import console
-from outpak.main import Outpak
+
+from outpak.config import OutpakConfig
+from outpak.command import OutpakCommand
 
 
-def get_path():
+def get_path(arguments):
     """Get pak.yml full path.
 
     Returns
@@ -26,42 +28,28 @@ def get_path():
         Str: full path from current path
 
     """
-    return os.path.join(
+    if arguments['--config']:
+        return arguments['--config']
+    elif os.getenv('OUTPAK_FILE'):
+        return os.getenv('OUTPAK_FILE')
+    else:
+        return os.path.join(
         os.getcwd(),
         'pak.yml'
     )
-
-
-def get_from_env():
-    """Get OUTPAK_FILE value.
-
-    Returns
-    -------
-        Str: value from memory
-
-    """
-    return os.getenv('OUTPAK_FILE')
-
 
 def run():
     """Run main command for outpak."""
     console.box("Outpak v{}".format(__version__))
     arguments = docopt(__doc__, version=__version__)
 
-    path = None
-    if arguments['--config']:
-        path = arguments['--config']
-
-    if not path:
-        path = get_from_env()
-
-    if not path:
-        path = get_path()
+    path = get_path(arguments)
 
     if arguments['install']:
-        newpak = Outpak(path)
-        newpak.run_silently = arguments['--quiet']
-        newpak.run()
+        config = OutpakConfig(path, arguments)
+        if config.is_valid:
+            command = OutpakCommand(config=config)
+            command.execute()
 
 
 if __name__ == "__main__":

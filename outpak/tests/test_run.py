@@ -8,86 +8,16 @@ Attributes
 """
 import unittest
 import os
-from outpak.main import Outpak
+
+from buzio import console
+
+from outpak.command import OutpakCommand
+from outpak.tests import PAK, REQ
 
 try:
     from unittest.mock import patch
 except ImportError:
     from mock import patch
-
-PAK = """
-version: "1"
-github_key: TEST_GIT_TOKEN_PAK
-bitbucket_key: TEST_BIT_TOKEN_PAK
-env_key: TEST_ENV_PAK
-envs:
-  dev:
-    key_value: development
-    use_virtual: True
-    clone_dir: /tmp/core
-    files:
-      - requirements.txt
-  docker:
-    key_value: docker
-    clone_dir: /opt/src
-    files:
-      - requirements.txt
-"""
-
-REQ = """
-# This is a comment
-
--r requirements_test.txt
-SomeProject
-SomeProject == 1.3
-SomeProject >=1.2,<.2.0
-SomeProject[foo, bar]
-SomeProject~=1.4.2
-SomeProject ==5.4 ; python_version < '2.7'
-SomeProject; sys_platform == 'win32'
-SomeProject[foo]>=2.18.1  # another comment
-
-FooProject >= 1.2 --global-option="--no-user-cfg" \
-                  --install-option="--prefix='/usr/local'" \
-                  --install-option="--no-compile"
-
-https://git.myproject.org/MyProject#egg=MyProject
-https://git.myproject.org/MyProject@commit123#egg=MyProject
-
-git://git.myproject.org/MyProject#egg=MyProject
-git+http://git.myproject.org/MyProject#egg=MyProject
-git+https://git.myproject.org/MyProject#egg=MyProject
-git+ssh://git.myproject.org/MyProject#egg=MyProject
-git+git://git.myproject.org/MyProject#egg=MyProject
-git+file://git.myproject.org/MyProject#egg=MyProject
--e git+git@git.myproject.org:MyProject#egg=MyProject
-
-git://git.myproject.org/MyProject.git@master#egg=MyProject
-git://git.myproject.org/MyProject.git@v1.0#egg=MyProject
-git://git.myproject.org/MyProject.git@da39a3ee5e6b4b0d3255bfef95601890afd80709#egg=MyProject
-
-hg+http://hg.myproject.org/MyProject#egg=MyProject
-hg+https://hg.myproject.org/MyProject#egg=MyProject
-hg+ssh://hg.myproject.org/MyProject#egg=MyProject
-
-hg+http://hg.myproject.org/MyProject@da39a3ee5e6b#egg=MyProject
-hg+http://hg.myproject.org/MyProject@2019#egg=MyProject
-hg+http://hg.myproject.org/MyProject@v1.0#egg=MyProject
-hg+http://hg.myproject.org/MyProject@special_feature#egg=MyProject
-
-svn+svn://svn.myproject.org/svn/MyProject#egg=MyProject
-svn+http://svn.myproject.org/svn/MyProject/trunk@2019#egg=MyProject
-
-bzr+http://bzr.myproject.org/MyProject/trunk#egg=MyProject
-bzr+sftp://user@myproject.org/MyProject/trunk#egg=MyProject
-bzr+ssh://user@myproject.org/MyProject/trunk#egg=MyProject
-bzr+ftp://user@myproject.org/MyProject/trunk#egg=MyProject
-bzr+lp:MyProject#egg=MyProject
-bzr+https://bzr.myproject.org/MyProject/trunk@2019#egg=MyProject
-bzr+http://bzr.myproject.org/MyProject/trunk@v1.0#egg=MyProject
-
--e ./packages/my_package
-"""
 
 
 class TestOutpakRunModule(unittest.TestCase):
@@ -97,22 +27,18 @@ class TestOutpakRunModule(unittest.TestCase):
         """test_get_path."""
         from outpak.run import get_path
         self.assertEqual(
-            get_path(),
+            get_path({'--config': None}),
             os.path.join(os.getcwd(), 'pak.yml')
         )
-
-    def test_get_from_env(self):
-        """test_get_from_env."""
-        from outpak.run import get_from_env
         os.environ['OUTPAK_FILE'] = '/tmp/pak.yml'
-        ret = get_from_env()
+        ret = get_path({'--config': None})
         del os.environ['OUTPAK_FILE']
         self.assertEqual(
             ret,
             '/tmp/pak.yml'
         )
 
-    @patch("outpak.run.Outpak", autospec=True)
+    @patch("outpak.run.OutpakCommand", autospec=True)
     @patch(
         "outpak.run.docopt",
         autospec=True,
@@ -142,7 +68,7 @@ class TestOutpakClass(unittest.TestCase):
         """setUp."""
         super(TestOutpakClass, self).setUp()
         self.path = "/tmp/pak.yml"
-        self.instance = Outpak(self.path)
+        self.instance = OutpakCommand(self.path)
 
     def tearDown(self):
         """tearDown."""
@@ -172,7 +98,7 @@ class TestOutpakClass(unittest.TestCase):
 
     def test_command(self):
         """test_command."""
-        ret = self.instance._run_command(
+        ret = console.run(
             task="echo hello-world",
             get_stdout=True,
             verbose=True
@@ -192,7 +118,7 @@ class TestOutpakClass(unittest.TestCase):
 
     def test_failed_open_yml(self):
         """test_failed_open_yml."""
-        instance = Outpak('/tmp/do-not-exist')
+        instance = OutpakCommand('/tmp/do-not-exist')
         with self.assertRaises(SystemExit):
             instance.load_from_yaml()
 
@@ -348,9 +274,7 @@ class TestOutpakClass(unittest.TestCase):
             os.path.join(self.instance.environment['clone_dir'], "outpak")
         )
 
-    @patch("outpak.main.subprocess.check_output",
-           autospec=True, return_value="cmd")
-    @patch("outpak.main.subprocess.call", autospec=True, return_value=0)
+    @patch("buzio.console.run", return_value="data")
     def test_install_package_with_url(self, *args):
         """test_install_package_with_url."""
         line = "-e git+git@github.com:chrismaille/outpak@1.0.0#egg=outpak"
@@ -368,10 +292,8 @@ class TestOutpakClass(unittest.TestCase):
             self.instance.install_package(package)
         )
 
-    @patch("outpak.main.subprocess.check_output",
-           autospec=True, return_value="cmd")
-    @patch("outpak.main.subprocess.call", autospec=True, return_value=0)
-    def test_install_package_with_pip(self, *args):
+    @patch("buzio.console.run", return_value=True)
+    def test_install_package(self, *args):
         """test_install_package_with_pip."""
         line = "requests[security]>=2.18.0"
         os.environ['TEST_ENV_PAK'] = 'development'
@@ -383,11 +305,9 @@ class TestOutpakClass(unittest.TestCase):
             self.instance.install_package(package)
         )
 
-    @patch("outpak.main.subprocess.check_output",
-           autospec=True, return_value="cmd")
-    @patch("outpak.main.subprocess.call", autospec=True, return_value=0)
+    @patch("buzio.console.run", return_value="data")
     def test_run(self, *args):
-        """test_run."""
+        """test main run."""
         with open(self.path, "w") as file:
             file.write(PAK)
         with open('/tmp/requirements.txt', "w") as file:
@@ -396,5 +316,5 @@ class TestOutpakClass(unittest.TestCase):
         os.environ['TEST_GIT_TOKEN_PAK'] = '12345abcdef'
         os.environ['TEST_BIT_TOKEN_PAK'] = "abcde:1234"
         self.assertIsNone(
-            self.instance.run()
+            self.instance.execute()
         )

@@ -1,5 +1,5 @@
 test:
-	nosetests --with-coverage --cover-package=outpak --cover-min-percentage=80
+	nosetests --with-coverage --cover-package=outpak --cover-min-percentage=90
 	pydocstyle --match-dir=outpak
 	pycodestyle --max-line-length=120 outpak/
 
