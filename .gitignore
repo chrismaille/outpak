@@ -103,5 +103,6 @@ ENV/
 
 .idea/
 docs/source/
-venv36/
+venv*/
+
 
