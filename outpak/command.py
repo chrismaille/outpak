@@ -57,13 +57,13 @@ class OutpakCommand:
                 verbose=not self.config.run_silently,
                 silent=self.config.run_silently
             )
-        if ret and package['head']:
+        if ret and package['commit']:
             branchs = console.run(
                 'cd {} && git fetch --all && git branch -a'.format(
                     full_package_path),
                 get_stdout=True
             )
-            if branchs and package['head'] in branchs:
+            if branchs and package['commit'] in branchs:
                 ret = console.run(
                     "cd {} && git checkout {}".format(
                         full_package_path, package['head']),
@@ -121,28 +121,25 @@ class OutpakCommand:
             package (dict): Data parsed from package in requirements.txt
         """
         if self.config.run_silently:
-            console.info("{normal}Installing {yellow}{package_name} ({package_signal}{package_version}){normal} {head}{using}".format(
+            console.info("{normal}Installing {yellow}{package_line}{normal}{commit}{using}".format(
                 yellow=Fore.YELLOW,
-                package_name=package['name'],
-                package_signal=package['signal'] if package['signal'] and package['signal'] != "=" else "",
-                package_version=package['version'] if package['version'] else "latest",
+                package_line=package['line'],
                 normal=Style.RESET_ALL,
-                head="at head {} ".format(package['head']) if package['head'] else "",
-                using='using Token' if package['url'] else "using pip"
+                commit=" at commit {} ".format(package['commit']) if package['commit'] else "",
+                using=' using Token' if package['clone_dir'] else " using Pip"
             ), use_prefix=False
             )
         else:
-            console.section("Installing {} ({}{})".format(
-                package['name'],
-                package['signal'] if package['signal'] and package['signal'] != "=" else "",
-                package['version'] if package['version'] else "latest"
+            console.section("Installing {}".format(
+                package['line']
             ))
             console.info("Installing {}{}".format(
-                "at head {} ".format(package['head']) if package['head'] else "",
-                'using Token' if package['url'] else "using pip{}".format(' (silent)' if self.config.run_silently else '')
+                "at commit {} ".format(package['commit']) if package['commit'] else "",
+                'using Token' if package['url'] else "using Pip{}".format(
+                    ' (silent)' if self.config.run_silently else '')
             ), use_prefix=False)
 
-        if package['url'] and not package['use_original_line']:
+        if package['clone_dir']:
             self._install_with_url(package)
         else:
             self._install_with_pip(package)

@@ -101,6 +101,46 @@ SomeProject >=1.2,<.2.0
 --no-index
 --find-links /my/local/archives
 --find-links http://some.archives.com/archives
+
+-e git+http://${AUTH_USER}:${AUTH_PASSWORD}@git.example.com/MyProject#egg=MyProject
+-e git+https://${AUTH_USER}:${AUTH_PASSWORD}@git.example.com/MyProject#egg=MyProject
+
+#
+####### example-requirements.txt #######
+#
+###### Requirements without Version Specifiers ######
+nose
+nose-cov
+beautifulsoup4
+#
+###### Requirements with Version Specifiers ######
+#   See https://www.python.org/dev/peps/pep-0440/#version-specifiers
+docopt == 0.6.1             # Version Matching. Must be version 0.6.1
+keyring >= 4.1.1            # Minimum version 4.1.1
+coverage != 3.5             # Version Exclusion. Anything except version 3.5
+Mopidy-Dirble ~= 1.1        # Compatible release. Same as >= 1.1, == 1.*
+#
+###### Refer to other requirements files ######
+-r other-requirements.txt
+#
+#
+###### A particular file ######
+./downloads/numpy-1.9.2-cp34-none-win32.whl
+http://wxpython.org/Phoenix/snapshot-builds/wxPython_Phoenix-3.0.3.dev1820+49a8884-cp34-none-win_amd64.whl
+#
+###### Additional Requirements without Version Specifiers ######
+#   Same as 1st section, just here to show that you can put things in any order.
+rejected
+green
+#
+
+-i https://pypi.org/simple
+-e .
+futures==3.2.0; python_version < '3' -i https://pypi.org/simple
+hupper==1.3; python_version != '3.2.*'
+
+FooProject == 1.2 --hash=sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824 \
+                  --hash=sha256:486ea46224d1bb4fb680f34f7c9ad96a8f24ec88be73ea8e5a6c65260e9cb8a7
 """
 
 class OutpakTestBase(TestCase):

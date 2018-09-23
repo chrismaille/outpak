@@ -48,63 +48,20 @@ class PipParser:
         Change extra indexes if "--extra-index" in requirement is found
         Do not use extra indexes if "--no-index" in requirement is found
 
-        Check order is:
+        For every line with cvs+protocol Outpak will clone the repository first
+        then run pip install command in cloned directory
 
-        1. Check for fixed requirements (ex.: requests==2.18.4)
-        2. Check for latest requirements (ex.: django)
-        3. Check for "-e" requirements:
-            a) non secure links (ex.: -e ./packages/my_package)
-            # egg=my_package_egg)
-            b) git+https packages
-            (ex.: -e git+https://github.com/my_group/my_pack@commit#egg=my_egg)
-            c) git+git packages
-            (ex.: -e git+git@github.com:my_group/my_pack@commit#egg=my_egg)
-
-        Gives an error if line cannot be parsed.
-
-        Args:
-            line (string): line from requirements.txt
-
-        Returns
-        -------
-            Dict: data dictionary for package
-
-            Example 1: django==2.0.1
-            returns {
-                "name": "django",
-                "signal: "=",
-                "version": "2.0.1",
-                "head": None,
-                "egg": None
-            }
-
-            Example 2:
-            -e git+git@github.com:my_group/my_pack@my_commit#egg=my_package_egg
-            returns {
-                "name": "my_pack",
-                "signal: None,
-                "version": None,
-                "head": "my_commit",
-                "egg": "my_package_egg"
-            }
-
+        For every other non-comment line, run pip install with line
         """
         original_line = line
         line = line.split(" #")[0]  # removing comments (need space)
-        line = line.strip().replace("\n", "").replace(" ", "")
+        line = line.strip().replace("\n", "")
         data = {
-            "name": None,
-            "signal": None,
-            "version": None,
-            "url": None,
-            "head": None,
-            "egg": None,
-            "line": None,
-            "use_original_line": False,
-            "option": "",
             "index_url": None,
             "extra_indexes": [],
-            "original_line": original_line
+            "line": line,
+            "clone_url": None,
+            "commit": None
         }
         # Line is -r or -c
         if line.startswith("-r") or line.startswith('-c '):
@@ -113,7 +70,7 @@ class PipParser:
 
         # Line starts with '-i' or '--index-url'
         if line.startswith('-i') or line.startswith('--index-url'):
-            m = re.search(r"\-+\w+\s+(\S+)", line)
+            m = re.search(r"-+\w+\s+(\S+)", line)
             if m:
                 self.current_index = m.group(1)
                 return
@@ -123,7 +80,7 @@ class PipParser:
 
         # Line starts with "--extra-index-url"
         if line.startswith('--extra-index-url'):
-            m = re.search(r"\-+\w+\s+(\S+)", line)
+            m = re.search(r"-+\w+\s+(\S+)", line)
             if m:
                 self.extra_indexes.append = m.group(1)
                 return
@@ -140,113 +97,17 @@ class PipParser:
         data['index_url'] = self.current_index
         data['extra_indexes'] = self.extra_indexes
 
-        # Find other options:
-        if line.startswith('-e'):
-            data['option'] = "-e"
+        # Find lines which need cloning
+        # TODO: Parse commits from URL
+        if "://" in line and "$" not in line:
+            url = line.split('://')[1].replace(":", "/").split("#")[0]
+            if ";" in url:
+                url = url.split(";")[0].rstrip()
+            data['clone_url'] = url
+        elif "+" in line and "@" in line and "$" not in line:
+            url = line.split("@")[1].replace(":", "/").split("#")[0]
+            if ";" in url:
+                url = url.split(";")[0].rstrip()
+            data['clone_url'] = url.replace("https://", "").replace("http://", "")
 
-        if line.startswith('-f') or line.startswith('--find-links'):
-            data['option'] = "-f" if line.startswith('-f') else '--find-links'
-
-        if line.startswith('--no-binary'):
-            data['option'] = "--no-binary"
-
-        if line.startswith('--no-binary'):
-            data['option'] = "--no-binary"
-
-        if line.startswith('--only-binary'):
-            data['option'] = "--only-binary"
-
-        if line.startswith('--require-hashes'):
-            data['option'] = "--require-hashes"
-
-        line = line.replace(data['option'], "")
-
-        # SomeProject ==5.4 ; python_version < '2.7'
-        if ";" in line:
-            data['name'] = line.split(";")[0]
-            data['use_original_line'] = True
-            return data
-
-        # SomeProject0==1.3
-        # SomeProject >=1.2,<.2.0
-        # SomeProject~=1.4.2
-        # SomeProject[foo]>=2.18.1
-        # FooProject>=1.2--global-option="--no-user-cfg"
-        m = re.search(r"(.+)(>|=|~|<)=(\S+)", line)
-        if m:
-            data["name"] = m.group(1)
-            data["signal"] = m.group(2)
-            data["version"] = m.group(3)
-            return data
-
-        # SomeProject[foo, bar]
-        m = re.search(r"(.+\[.+\])", line)
-        if m:
-            data["name"] = m.group(1)
-            return data
-
-        # SomeProject
-        # .packages/my_package
-        if "+" not in line and "//" not in line:
-            data['name'] = line
-            data['line'] = line
-            data['use_original_line'] = True
-            return data
-
-        # hg+http://hg.myproject.org/MyProject#egg=MyProject
-        # svn+http://svn.myproject.org/svn/MyProject/trunk@2019#egg=MyProject
-        # bzr+lp:MyProject#egg=MyProject
-        if "hg+" in line or "svn+" in line or "bzr+" in line:
-            data['name'] = line
-            data['line'] = line
-            data['use_original_line'] = True
-            return data
-
-        if line.startswith('git'):
-            # git://git.myproject.org/MyProject#egg=MyProject
-            # git://git.myproject.org/MyProject@1234acbd#egg=MyProject
-            # git+git://git.myproject.org/MyProject#egg=MyProject
-            # git+git://git.myproject.org/MyProject@1234abcd#egg=MyProject
-            m = re.search(r"(git:\/\/)(.+)#", line)
-            if m:
-                data['url'] = m.group(2).replace(".git", "")
-                if "@" in data['url']:
-                    data['head'] = data['url'].split("@")[-1]
-                    data['url'] = data['url'].split("@")[0]
-                data['name'] = data['url'].split("/")[-1]
-                return data
-
-            # git+https://git.myproject.org/MyProject#egg=MyProject
-            # git+https://git.myproject.org/MyProject@1234abcd#egg=MyProject
-            # git+ssh://git.myproject.org/MyProject#egg=MyProject
-            # git+ssh://git.myproject.org/MyProject@1234abcd#egg=MyProject
-            m = re.search(r"(git\+\w+:\/\/)(.+)#", line)
-            if m:
-                data['url'] = m.group(2).replace(".git", "")
-                if "@" in data['url']:
-                    data['head'] = data['url'].split("@")[-1]
-                    data['url'] = data['url'].split("@")[0]
-                data['name'] = data['url'].split("/")[-1]
-                return data
-
-            # git+git@git.myproject.org:MyProject#egg=MyProject
-            # git+git@git.myproject.org:MyProject@1234abcd#egg=MyProject
-            m = re.search(r"(git\+git@)(.+)#", line)
-            if m:
-                data['url'] = m.group(2).replace(".git", "").replace(":", "/")
-                if "@" in data['url']:
-                    data['head'] = data['url'].split("@")[-1]
-                    data['url'] = data['url'].split("@")[0]
-                data['name'] = data['url'].split("/")[-1]
-                return data
-
-        # https://git.myproject.org/MyProject#egg=MyProject
-        # https://git.myproject.org/MyProject@commit1234#egg=MyProject
-        if line.startswith("http"):
-            data['line'] = line.split("#")[0]
-            data['use_original_line'] = True
-            data['name'] = data['line'].split("@")[0].split("/")[-1]
-            return data
-
-        console.error('Cannot parse: {}'.format(original_line))
-        sys.exit(1)
+        return data
