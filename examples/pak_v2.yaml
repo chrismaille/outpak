@@ -1,0 +1,25 @@
+version: "2"
+providers:
+  github:
+    authorization_token: $GIT_TOKEN
+  slack:
+    authorization_token: $TEST_SLACK_TOKEN
+  jira:
+    authorization_token: $TEST_JIRA_AUTH
+install:
+  provider: github
+  files:
+    - requirements.txt
+versioning:
+  provider: jira
+  rules:
+    minor:
+      - story
+    major:
+      - epic
+changelog:
+  file:
+    - CHANGELOG.md
+
+
+

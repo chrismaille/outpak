@@ -1,0 +1,16 @@
+version: "1"
+github_key: TEST_GIT_TOKEN_PAK
+bitbucket_key: TEST_BIT_TOKEN_PAK
+env_key: TEST_ENV_PAK
+envs:
+  dev:
+    key_value: development
+    use_virtual: True
+    clone_dir: /tmp/core
+    files:
+      - requirements.txt
+  docker:
+    key_value: docker
+    clone_dir: /opt/src
+    files:
+      - requirements.txt

@@ -6,52 +6,18 @@ Attributes
     REQ (Str): requirements.txt model
 
 """
-import unittest
 import os
+import unittest
+from unittest.mock import patch
 
+import yaml
 from buzio import console
 
-from outpak.command import OutpakCommand
-from outpak.tests import PAK, REQ
+from outpak.config import load_from_yaml, path_constructor, path_matcher
+from outpak.main.v1 import Outpak
 
-try:
-    from unittest.mock import patch
-except ImportError:
-    from mock import patch
-
-
-class TestOutpakRunModule(unittest.TestCase):
-    """Run module tests."""
-
-    def test_get_path(self):
-        """test_get_path."""
-        from outpak.run import get_path
-        self.assertEqual(
-            get_path({'--config': None}),
-            os.path.join(os.getcwd(), 'pak.yml')
-        )
-        os.environ['OUTPAK_FILE'] = '/tmp/pak.yml'
-        ret = get_path({'--config': None})
-        del os.environ['OUTPAK_FILE']
-        self.assertEqual(
-            ret,
-            '/tmp/pak.yml'
-        )
-
-    @patch("outpak.run.OutpakCommand", autospec=True)
-    @patch(
-        "outpak.run.docopt",
-        autospec=True,
-        return_value={
-            '--config': None,
-            'install': True,
-            '--quiet': False
-        }
-    )
-    def test_run(self, *args):
-        """test_run."""
-        from outpak.run import run
-        self.assertIsNone(run())
+yaml.add_implicit_resolver('!path', path_matcher, None, yaml.SafeLoader)
+yaml.add_constructor('!path', path_constructor, yaml.SafeLoader)
 
 
 class TestOutpakClass(unittest.TestCase):
@@ -68,7 +34,8 @@ class TestOutpakClass(unittest.TestCase):
         """setUp."""
         super(TestOutpakClass, self).setUp()
         self.path = "/tmp/pak.yml"
-        self.instance = OutpakCommand(self.path)
+        data = self.load_from_file(self.path)
+        self.instance = Outpak(self.path, data)
 
     def tearDown(self):
         """tearDown."""
@@ -83,11 +50,16 @@ class TestOutpakClass(unittest.TestCase):
         if os.path.exists('/tmp/requirements.txt'):
             os.remove('/tmp/requirements.txt')
 
-    def _load_from_file(self):
-        with open(self.path, "w") as file:
-            file.write(PAK)
-        self.instance.load_from_yaml()
-        os.remove(self.path)
+    @staticmethod
+    def load_from_file(path, version="v1"):
+        current_path = os.path.dirname(os.path.abspath(__file__))
+        config_path = os.path.join(current_path, '..', '..', 'examples', f'pak_{version}.yaml')
+        with open(config_path, 'r') as file:
+            pak_file = yaml.safe_load(file.read())
+        with open(path, "w") as file:
+            file.write(yaml.safe_dump(pak_file))
+        os.remove(path)
+        return pak_file
 
     def test_init(self):
         """test_init."""
@@ -110,7 +82,7 @@ class TestOutpakClass(unittest.TestCase):
 
     def test_load_yaml(self):
         """test_load_yaml."""
-        self._load_from_file()
+        self.load_from_file(self.path)
         self.assertEqual(
             self.instance.data['github_key'],
             'TEST_GIT_TOKEN_PAK'
@@ -118,25 +90,17 @@ class TestOutpakClass(unittest.TestCase):
 
     def test_failed_open_yml(self):
         """test_failed_open_yml."""
-        instance = OutpakCommand('/tmp/do-not-exist')
         with self.assertRaises(SystemExit):
-            instance.load_from_yaml()
+            load_from_yaml('/path/do-not-exist')
 
     def test_validate_data_from_yaml(self):
         """test_validate_data_from_yaml."""
-        self._load_from_file()
-        self.assertIsNone(self.instance.validate_data_from_yaml())
 
-    def test_failed_version_check_from_yml(self):
-        """test_failed_version_check_from_yml."""
-        self._load_from_file()
-        self.instance.data['version'] = "x"
-        with self.assertRaises(SystemExit):
-            self.instance.validate_data_from_yaml()
+        self.assertIsNone(self.instance.validate_data())
 
     def test_get_environment_keys(self):
         """test_get_environment_keys."""
-        self._load_from_file()
+
         os.environ['TEST_ENV_PAK'] = 'development'
         self.instance.get_current_environment()
         del os.environ['TEST_ENV_PAK']
@@ -147,7 +111,7 @@ class TestOutpakClass(unittest.TestCase):
 
     def test_get_token(self):
         """test_get_token."""
-        self._load_from_file()
+
         os.environ['TEST_GIT_TOKEN_PAK'] = '1234-5678'
         os.environ['TEST_BIT_TOKEN_PAK'] = 'abcdef:1234'
         self.instance.get_token()
@@ -164,14 +128,14 @@ class TestOutpakClass(unittest.TestCase):
 
     def test_token_not_found(self):
         """test_token_not_found."""
-        self._load_from_file()
+
         with self.assertRaises(SystemExit):
             self.instance.get_token()
 
     def test_get_files(self):
         """test_get_files."""
-        self._load_from_file()
         os.environ['TEST_ENV_PAK'] = 'development'
+
         self.instance.get_current_environment()
         self.assertEqual(len(self.instance.get_files()), 0)
         del os.environ['TEST_ENV_PAK']
@@ -180,17 +144,12 @@ class TestOutpakClass(unittest.TestCase):
         """test_check_virtualenv."""
         import sys
 
-        self._load_from_file()
         os.environ['TEST_ENV_PAK'] = 'development'
+
         self.instance.get_current_environment()
         del os.environ['TEST_ENV_PAK']
-        is_venv = (
-            hasattr(sys, 'real_prefix') or  # virtualenv
-            (
-                hasattr(sys, 'base_prefix') and
-                sys.base_prefix != sys.prefix  # pyvenv
-            )
-        )
+        is_venv = (hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and
+                                                   sys.base_prefix != sys.prefix))
 
         if is_venv:
             self.assertIsNone(self.instance.check_venv())
@@ -199,8 +158,8 @@ class TestOutpakClass(unittest.TestCase):
                 self.instance.check_venv()
 
     def _parse_line(self, line):
-        self._load_from_file()
         os.environ['TEST_ENV_PAK'] = 'development'
+
         self.instance.get_current_environment()
         del os.environ['TEST_ENV_PAK']
         return self.instance.parse_line(line)
@@ -274,14 +233,15 @@ class TestOutpakClass(unittest.TestCase):
             os.path.join(self.instance.environment['clone_dir'], "outpak")
         )
 
-    @patch("buzio.console.run", return_value="data")
+    @patch("buzio.console.run",
+           autospec=True, return_value="cmd")
     def test_install_package_with_url(self, *args):
         """test_install_package_with_url."""
         line = "-e git+git@github.com:chrismaille/outpak@1.0.0#egg=outpak"
         os.environ['TEST_ENV_PAK'] = 'development'
         os.environ['TEST_GIT_TOKEN_PAK'] = '12345678'
         os.environ['TEST_BIT_TOKEN_PAK'] = 'acbde:1234'
-        self._load_from_file()
+
         self.instance.get_current_environment()
         self.instance.get_token()
         del os.environ['TEST_GIT_TOKEN_PAK']
@@ -292,12 +252,13 @@ class TestOutpakClass(unittest.TestCase):
             self.instance.install_package(package)
         )
 
-    @patch("buzio.console.run", return_value=True)
-    def test_install_package(self, *args):
+    @patch("buzio.console.run",
+           autospec=True, return_value="cmd")
+    def test_install_package_with_pip(self, *args):
         """test_install_package_with_pip."""
         line = "requests[security]>=2.18.0"
         os.environ['TEST_ENV_PAK'] = 'development'
-        self._load_from_file()
+
         self.instance.get_current_environment()
         del os.environ['TEST_ENV_PAK']
         package = self._parse_line(line)
@@ -305,16 +266,24 @@ class TestOutpakClass(unittest.TestCase):
             self.instance.install_package(package)
         )
 
-    @patch("buzio.console.run", return_value="data")
-    def test_run(self, *args):
-        """test main run."""
+    @patch("buzio.console.run",
+           autospec=True, return_value="cmd")
+    def test_run_v1(self, *args):
+        """test_run."""
+        current_path = os.path.dirname(os.path.abspath(__file__))
+        v1_path = os.path.join(current_path, '..', '..', 'examples', f'pak_v1.yaml')
+        requirements_path = os.path.join(current_path, '..', '..', 'examples', f'requirements.txt')
+        with open(v1_path, 'r') as file:
+            pak_file = yaml.safe_load(file.read())
+        with open(requirements_path, 'r') as file:
+            requirements_file = file.read()
         with open(self.path, "w") as file:
-            file.write(PAK)
+            file.write(yaml.safe_dump(pak_file))
         with open('/tmp/requirements.txt', "w") as file:
-            file.write(REQ)
+            file.write(requirements_file)
         os.environ['TEST_ENV_PAK'] = 'development'
         os.environ['TEST_GIT_TOKEN_PAK'] = '12345abcdef'
         os.environ['TEST_BIT_TOKEN_PAK'] = "abcde:1234"
         self.assertIsNone(
-            self.instance.execute()
+            self.instance.run()
         )

@@ -1,0 +1,81 @@
+version: 2.1
+
+commands:
+  install_deps:
+    description: "Install pipenv and dependencies"
+    steps:
+      - run:
+          name: "Install Pipenv"
+          command: pip install -U --user pipenv
+      - run:
+          name: "Build"
+          command: pipenv install --dev --system
+
+jobs:
+  build_test_python35:
+    working_directory: ~/app
+    docker:
+      - image: circleci/python:3.5
+    steps:
+      - checkout
+      - install_deps
+      - run:
+          name: Test
+          command: make lint
+  build_test_python36:
+    working_directory: ~/app
+    docker:
+      - image: circleci/python:3.6
+    steps:
+      - checkout
+      - install_deps
+      - run:
+          name: Test
+          command: make lint
+      - run:
+          name: Send coverage
+          command: codecov
+  build_test_python37:
+    working_directory: ~/app
+    docker:
+      - image: circleci/python:3.7
+    steps:
+      - checkout
+      - install_deps
+      - run:
+          name: Test
+          command: make lint
+  release:
+    docker:
+      - image: circleci/python:3.7
+    steps:
+      - checkout
+      - run:
+          name: Install Changelog Libs
+          command: |
+            sudo apt-get install -y jq
+      - run:
+          name: Create Changelog
+          command: make changelog
+      - run:
+          name: Save Release
+          command: make release
+      - run:
+          name: Publish Package
+          command: make deploy
+workflows:
+  version: 2
+  deploy:
+    jobs:
+      - build_test_python35
+      - build_test_python36
+      - build_test_python37
+      - release:
+          requires:
+            - build_test_python35
+            - build_test_python36
+            - build_test_python37
+          filters:
+            branches:
+              only:
+                - master

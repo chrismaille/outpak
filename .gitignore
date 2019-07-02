@@ -106,3 +106,4 @@ docs/source/
 venv*/
 
 
+Pipfile.lock

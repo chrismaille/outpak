@@ -1,4 +1,5 @@
 """Main run module."""
-from outpak.run import run
+from outpak.cmd import start
 
-run()
+if __name__ == '__main__':
+    start()
