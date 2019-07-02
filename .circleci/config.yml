@@ -6,10 +6,10 @@ commands:
     steps:
       - run:
           name: "Install Pipenv"
-          command: pip install -U --user pipenv
+          command: pip install -U --user pip setuptools pipenv
       - run:
           name: "Build"
-          command: pipenv install --dev --system
+          command: pipenv install --dev
 
 jobs:
   build_test_python35:
