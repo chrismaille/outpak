@@ -3,6 +3,7 @@ import os
 import re
 import shutil
 import sys
+from typing import List
 
 from buzio import console
 
@@ -21,17 +22,20 @@ class Outpak(BaseOutpak):
 
     """
 
-    def __init__(self, config_path, config_data):
+    environment: dict
+
+    def __init__(self, config_path: str, config_data: dict) -> None:
         """Initialize class.
 
-        Args:
-            path (sring): full path from click option (-c)
+        :param config_path: path for pak.yml file
+        :param config_data: data from pak.yml file
         """
-        super(Outpak, self).__init__(config_path, config_data)
+        self.path = config_path
+        self.data = config_data
         self.git_token = ""
         self.bit_token = ""
 
-    def validate_data(self):
+    def validate_data(self) -> None:
         """Validate data from pak.yml."""
         error = False
         if not self.data.get('token_key') and \
@@ -69,7 +73,7 @@ class Outpak(BaseOutpak):
         if error:
             sys.exit(1)
 
-    def get_current_environment(self):
+    def get_current_environment(self) -> None:
         """Get current environment.
 
         Check the value for env_key informed,
@@ -114,7 +118,7 @@ class Outpak(BaseOutpak):
                         value, self.path))
                 sys.exit(1)
 
-    def get_token(self):
+    def get_token(self) -> None:
         """Get current token.
 
         Check the value for env_key informed,
@@ -139,7 +143,7 @@ class Outpak(BaseOutpak):
                     "(https://github.com/settings/tokens)".format(git_var))
                 sys.exit(1)
             else:
-                self.git_token = os.getenv(git_var)
+                self.git_token = os.getenv(git_var, "")
 
         bit_var = self.data.get('bitbucket_key')
         if bit_var:
@@ -150,13 +154,13 @@ class Outpak(BaseOutpak):
                     "/<your_user>/app-passwords)".format(bit_var))
                 sys.exit(1)
             else:
-                if ":" not in os.getenv(bit_var):
+                if ":" not in os.getenv(bit_var, ""):
                     console.error(
                         "For Bitbucket "
                         "Password App format is username:password"
                     )
                     sys.exit(1)
-                self.bit_token = os.getenv(bit_var)
+                self.bit_token = os.getenv(bit_var, "")
         if not git_var and not bit_var:
             console.error(
                 "You need to define at least one of "
@@ -164,7 +168,7 @@ class Outpak(BaseOutpak):
             )
             sys.exit(1)
 
-    def get_files(self):
+    def get_files(self) -> List[str]:
         """Return existing files from list.
 
         Returns
@@ -180,10 +184,10 @@ class Outpak(BaseOutpak):
         ]
         return file_list
 
-    def check_venv(self):
+    def check_venv(self) -> None:
         """Check if virtualenv is active."""
 
-        def is_venv():
+        def is_venv() -> bool:
             return (hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and
                                                     sys.base_prefix != sys.prefix))
 
@@ -456,7 +460,7 @@ class Outpak(BaseOutpak):
         else:
             self._install_with_pip(package)
 
-    def run(self):
+    def install(self):
         """Run instance."""
         self.validate_data()
         self.get_current_environment()

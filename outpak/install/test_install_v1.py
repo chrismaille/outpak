@@ -285,5 +285,5 @@ class TestOutpakClass(unittest.TestCase):
         os.environ['TEST_GIT_TOKEN_PAK'] = '12345abcdef'
         os.environ['TEST_BIT_TOKEN_PAK'] = "abcde:1234"
         self.assertIsNone(
-            self.instance.run()
+            self.instance.install()
         )

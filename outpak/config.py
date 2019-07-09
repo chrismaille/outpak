@@ -15,7 +15,6 @@ def path_constructor(loader, node):
     match = path_matcher.match(value)
     env_var = match.group()[1:]
     value = os.environ.get(env_var, None)
-    print(env_var, value)
     return value
 
 

@@ -12,4 +12,4 @@ def install(pak: Outpak) -> None:
     :param pak: Outpak instance (click context object)
     :return: None
     """
-    pak.run()
+    pak.install()
