@@ -6,20 +6,24 @@ providers:
     authorization_token: $TEST_SLACK_TOKEN
   jira:
     authorization_token: $TEST_JIRA_AUTH
-install:
-  provider: github
-  files:
-    - requirements.txt
-versioning:
-  provider: jira
-  rules:
-    minor:
-      - story
-    major:
-      - epic
-changelog:
-  file:
-    - CHANGELOG.md
+commands:
+  install:
+    provider: github
+    files:
+      - requirements.txt
+  version:
+    source: story
+    provider: jira
+    rules:
+      minor:
+        - label: type
+          value: story
+      major:
+        - label: type
+          value: epic
+  release:
+    file:
+      - CHANGELOG.md
 
 
 

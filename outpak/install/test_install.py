@@ -137,7 +137,7 @@ class TestOutpakClass(unittest.TestCase):
         os.environ['TEST_ENV_PAK'] = 'development'
 
         self.instance.get_current_environment()
-        self.assertEqual(len(self.instance.get_files()), 0)
+        self.assertEqual(len(self.instance.get_files(file_list=self.instance.environment['files'])), 0)
         del os.environ['TEST_ENV_PAK']
 
     def test_check_virtualenv(self):

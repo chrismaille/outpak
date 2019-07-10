@@ -14,7 +14,8 @@ def cli(ctx, config) -> None:
     """Click main group command."""
     data = load_from_yaml(config)
     klass = importlib.import_module(f"outpak.main.v{data['version']}.Outpak")
-    obj = klass(config)  # type: ignore
+    obj = klass(config, data)  # type: ignore
+    obj.validate_data()
     ctx.obj = obj
 
 
